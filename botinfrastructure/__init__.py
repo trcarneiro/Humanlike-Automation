@@ -1,3 +1,4 @@
-from utils import Utility
-from webdriver import BrowserHandler
-from webpagehandler import WebPageHandler
+#from utils import Utility
+from .utils import Utility
+from .webdriver import BrowserHandler
+from .webpagehandler import WebPageHandler
