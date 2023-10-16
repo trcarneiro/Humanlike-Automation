@@ -1,3 +1,3 @@
-from .utility import Utility
-from .browser_handler import BrowserHandler
-from .web_page_handler import WebPageHandler
+from utils import Utility
+from webdriver import BrowserHandler
+from webpagehandler import WebPageHandler
