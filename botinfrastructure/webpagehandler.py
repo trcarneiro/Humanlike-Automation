@@ -6,8 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from utils import Utility  # Make sure to import the Utility class correctly
-from webdriver import BrowserHandler  # Make sure to import the BrowserHandler class correctly
+from utility import *  
+from browserhandler import *  
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +15,8 @@ logger = logging.getLogger(__name__)
 
 class WebPageHandler:
 
-    def __init__(self, site, user, proxy):
-        self.webdriver = BrowserHandler(site, user, proxy)
-        self.driver = self.webdriver.execute()
+    def __init__(self, driver):
+        self.driver = driver
         self.utils = Utility()
 
     def _wait_for_element(self, xpath, timeout=10, clickable=False):

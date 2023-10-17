@@ -12,9 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import FakeUserAgent
-from utility import Utility
-
-
+from .utility import *  # Certifique-se de importar a classe Utility corretamente
 
 # Configuração de logging
 logger = logging.getLogger('BrowserHandler')
@@ -106,7 +104,9 @@ class BrowserHandler:
         """Execute the main operation."""
         try:
             self.initialize_driver()
-            self.validate_bot()
+            if(self.validate_bot()):
+                return self.driver
+            
         except Exception as e:
             logger.error(f"Exception occurred during execution: {e}")
             self.utility.print_exception()
