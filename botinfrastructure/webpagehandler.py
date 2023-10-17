@@ -6,8 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from utility import *  
-from browserhandler import *  
+from .utility import *  
+from .browserhandler import *  
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -25,8 +25,15 @@ class WebPageHandler:
             return WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
         except (TimeoutException, WebDriverException) as e:
             logger.error(f"An error occurred while waiting for element: {e}")
-            self.utils.print_exception()
-            return None
+            raise e  # Relançar a exceção para que o chamador saiba que algo falhou
+
+    def click_element(self, xpath):
+        element = self._wait_for_element(xpath, clickable=True)
+        if element:
+            element.click()
+        else:
+            logger.error(f"Element not found: {xpath}")
+            raise NoSuchElementException(f"Element not found: {xpath}")
 
     def _random_sleep(self, min_seconds=2, max_seconds=5):
         sleep_duration = random.uniform(min_seconds, max_seconds)
@@ -45,11 +52,6 @@ class WebPageHandler:
             element.clear()
             element.send_keys(text)
 
-    def click_element(self, xpath):
-        element = self._wait_for_element(xpath, clickable=True)
-        if element:
-            element.click()
-
     def scroll_to_bottom(self):
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         self._random_sleep()
@@ -63,7 +65,7 @@ class WebPageHandler:
         try:
             link = self._wait_for_element(xpath, clickable=True)
             link.click()
-            link = self.utils.colar()
+            link = self.utils.paste_from_clipboard()
             if link:
                 logger.info(f"Link found: {link}")
                 return link
