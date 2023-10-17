@@ -3,13 +3,18 @@ import platform
 import random
 import time
 import logging
-import unittest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from utils import Utility  # Certifique-se de importar a classe Utility corretamente
+from fake_useragent import FakeUserAgent
+from utility import Utility
+
+
 
 # Configuração de logging
 logger = logging.getLogger('BrowserHandler')
@@ -22,6 +27,8 @@ class BrowserHandler:
         self.site = site
         self.utility = Utility()
         self.driver = None
+        self.ua = FakeUserAgent()
+        self.user_agent = self.ua.random
 
     def _random_sleep(self, min_seconds=5, max_seconds=10):
         """Pause the execution for a random time."""
@@ -34,6 +41,7 @@ class BrowserHandler:
         chrome_options = Options()
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--enable-file-cookies")
+        chrome_options.add_argument(f"user-agent={self.user_agent}")
         chrome_options.add_argument(f"--user-data-dir={os.path.join(os.getcwd(), 'profiles', self.profile)}")
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument('--no-sandbox')
@@ -48,11 +56,19 @@ class BrowserHandler:
             chrome_options = self._initialize_webdriver_options()
             os_type = platform.system()
             if os_type == "Windows":
-                self.driver = webdriver.Chrome(executable_path="c:\\chrome-win64\\chromedriver.exe", options=chrome_options)
+                chrome_binary_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chrome.exe")
+                chrome_driver_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chromedriver.exe")
+                self.service = ChromeService(executable_path=chrome_driver_path, enable_verbose_logging = True)
+                chrome_options.binary_location = chrome_binary_path   
             elif os_type == "Linux":
-                self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+                chrome_binary_path = "/usr/bin/google-chrome-stable"
+                chrome_driver_path = "./chromedriver"
+                chrome_options.add_argument('--headless')
+                self.service = ChromeService(ChromeDriverManager().install())
             else:
                 raise Exception("Unsupported operating system.")
+            
+            self.driver = webdriver.Chrome(service=self.service, options=chrome_options)
         except Exception as e:
             logger.error(f"Exception occurred while initializing driver: {e}")
             self.utility.print_exception()
@@ -64,8 +80,23 @@ class BrowserHandler:
             logger.error("Driver not initialized.")
             raise Exception("Driver not initialized.")
         try:
-            self.driver.get(self.site)
-            self.driver.find_element(By.NAME, "q").send_keys("test")
+            self.driver.execute_script("window.open('', '_blank');")
+            self.driver.switch_to.window(self.driver.window_handles[-1])
+            self.driver.get("https://www.google.com")
+            search_box = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.NAME, "q"))
+            )
+            search_box.send_keys(self.site)
+            search_box.send_keys(Keys.RETURN)
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "h3"))
+            )
+            self.driver.find_element(By.CSS_SELECTOR, "h3").click()
+            self._random_sleep(5, 10)
+            if self.driver.find_elements(By.XPATH, '//*[@id="challenge-stage"]'):
+                logging.warning(f"Bot detected on site: {self.site}")
+                return False
+            return True
         except Exception as e:
             logger.error(f"Exception occurred during bot validation: {e}")
             self.utility.print_exception()
