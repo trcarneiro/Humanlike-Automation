@@ -24,16 +24,30 @@ class WebPageHandler:
         try:
             return WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
         except (TimeoutException, WebDriverException) as e:
-            logger.error(f"An error occurred while waiting for element: {e}")
+            logger.error(f"An error occurred while waiting for element: {e} xpath: {xpath}")
             raise e  # Relançar a exceção para que o chamador saiba que algo falhou
 
+    def element_exists(self, xpath, timeout=10):
+        """
+        Checks if an element exists on the page within a given timeout.
+        """
+        condition = EC.presence_of_element_located
+        try:
+            WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
+            return True
+        except (TimeoutException, WebDriverException):
+            return False
+
     def click_element(self, xpath):
-        element = self._wait_for_element(xpath, clickable=True)
-        if element:
+        """
+        Clicks an element if it exists; logs an error otherwise.
+        """
+        if self.element_exists(xpath):
+            element = self._wait_for_element(xpath, clickable=True)
             element.click()
         else:
             logger.error(f"Element not found: {xpath}")
-            raise NoSuchElementException(f"Element not found: {xpath}")
+
 
     def _random_sleep(self, min_seconds=2, max_seconds=5):
         sleep_duration = random.uniform(min_seconds, max_seconds)
