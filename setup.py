@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='botinfrastructure',
-    version='0.1.4',
+    version='0.1.4B',
     packages=find_packages(),
     install_requires=[
         'attrs==23.1.0',
