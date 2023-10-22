@@ -25,7 +25,8 @@ class WebPageHandler:
             return WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
         except (TimeoutException, WebDriverException) as e:
             logger.error(f"An error occurred while waiting for element: {e} xpath: {xpath}")
-            raise e  # Relançar a exceção para que o chamador saiba que algo falhou
+            return None
+            #raise e  # Relançar a exceção para que o chamador saiba que algo falhou
 
     def element_exists(self, xpath, timeout=10):
         """
@@ -36,17 +37,24 @@ class WebPageHandler:
             WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
             return True
         except (TimeoutException, WebDriverException):
+            logger.error(f"An error occurred while trying to element exists : {xpath}")
             return False
 
     def click_element(self, xpath):
         """
         Clicks an element if it exists; logs an error otherwise.
         """
-        if self.element_exists(xpath):
-            element = self._wait_for_element(xpath, clickable=True)
-            element.click()
-        else:
-            logger.error(f"Element not found: {xpath}")
+        try:
+            if self.element_exists(xpath):
+                element = self._wait_for_element(xpath, clickable=True)
+                element.click()
+                self._random_sleep()
+                return True
+            else:
+                logger.error(f"Element not found: {xpath}")
+                return False
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
 
 
     def _random_sleep(self, min_seconds=2, max_seconds=5):
@@ -64,6 +72,7 @@ class WebPageHandler:
         element = self._wait_for_element(xpath, clickable=True)
         if element:
             element.clear()
+            self._random_sleep()
             element.send_keys(text)
 
     def scroll_to_bottom(self):
@@ -71,14 +80,22 @@ class WebPageHandler:
         self._random_sleep()
 
     def get_text_by_xpath(self, xpath):
-        element = self._wait_for_element(xpath)
-        if element:
-            return element.text
+        try:
+            if self.element_exists(xpath):
+                element = self._wait_for_element(xpath, clickable=True)
+                return element.text
+            else:
+                logger.error(f"Element not found: {xpath}")
+                return False
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
+            return None
 
     def get_link_by_xpath(self, xpath):
         try:
             link = self._wait_for_element(xpath, clickable=True)
             link.click()
+            self._random_sleep()
             link = self.utils.paste_from_clipboard()
             if link:
                 logger.info(f"Link found: {link}")
