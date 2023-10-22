@@ -19,7 +19,7 @@ logger = logging.getLogger('BrowserHandler')
 logger.setLevel(logging.INFO)
 
 class BrowserHandler:
-    def __init__(self, site, profile, proxy):
+    def __init__(self, site, profile, proxy, profile_folder):
         self.profile = profile
         self.proxy = proxy
         self.site = site
@@ -27,6 +27,7 @@ class BrowserHandler:
         self.driver = None
         self.ua = FakeUserAgent()
         self.user_agent = self.ua.random
+        self.profile_folder = profile_folder
 
     def _random_sleep(self, min_seconds=5, max_seconds=10):
         """Pause the execution for a random time."""
@@ -40,7 +41,7 @@ class BrowserHandler:
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--enable-file-cookies")
         chrome_options.add_argument(f"user-agent={self.user_agent}")
-        chrome_options.add_argument(f"--user-data-dir={os.path.join(os.getcwd(), 'profiles', self.profile)}")
+        chrome_options.add_argument(f"--user-data-dir={self.profile_folder+self.profile}")
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
