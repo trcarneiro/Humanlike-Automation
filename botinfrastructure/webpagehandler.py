@@ -56,6 +56,20 @@ class WebPageHandler:
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
 
+    def click_element_on_element_xpath(self, elem, xpath):
+        try:
+            element_item =  elem.find_element(By.XPATH, xpath)
+            if element_item:
+                element_item.click()
+                self._random_sleep()
+                return True
+            else:
+                logger.error(f"Element not found: {xpath}")
+                return False
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
+            return None            
+
 
     def _random_sleep(self, min_seconds=2, max_seconds=5):
         sleep_duration = random.uniform(min_seconds, max_seconds)
@@ -81,7 +95,7 @@ class WebPageHandler:
 
     def get_text_by_xpath(self, xpath):
         try:
-            if self.element_exists(xpath):
+            if self.element_exists(xpath, timeout= 2):
                 element = self._wait_for_element(xpath, clickable=True)
                 return element.text
             else:
@@ -90,6 +104,18 @@ class WebPageHandler:
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
             return None
+        
+    def get_text_on_element(self, elem, xpath):
+        try:
+            element_item =  elem.find_element(By.XPATH, xpath)
+            if element_item:
+                return element_item.text
+            else:
+                logger.error(f"Element not found: {xpath}")
+                return False
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
+            return None    
 
     def get_link_by_xpath(self, xpath):
         try:
@@ -126,6 +152,9 @@ class WebPageHandler:
     def open_link(self, link):
         try:
             self.driver.get(link)
+            element_present = EC.presence_of_element_located((By.TAG_NAME, 'body'))
+            WebDriverWait(self.driver, 10).until(element_present)
+            return True
         except WebDriverException as e:
-            logger.error(f"An error occurred while trying to open the link: {e}")
+            logging.error(f"An error occurred while trying to open the link: {e}")
             return None
