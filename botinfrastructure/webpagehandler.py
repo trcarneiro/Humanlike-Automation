@@ -10,7 +10,7 @@ from .utility import *
 from .browserhandler import *  
 
 # Initialize logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 class WebPageHandler:
@@ -24,11 +24,20 @@ class WebPageHandler:
         try:
             return WebDriverWait(self.driver, timeout).until(condition((By.XPATH, xpath)))
         except (TimeoutException, WebDriverException) as e:
-            logger.error(f"An error occurred while waiting for element: {e} xpath: {xpath}")
+            logger.warning(f"An error occurred while waiting for element: {e} xpath: {xpath}")
             return None
             #raise e  # Relançar a exceção para que o chamador saiba que algo falhou
 
-    def element_exists(self, xpath, timeout=10):
+    def find_elements_containing_text(self, text, timeout=10):
+        xpath = f"//*[contains(text(), '{text}')]"
+        try:
+            WebDriverWait(self.driver, timeout).until(EC.presence_of_all_elements_located((By.XPATH, xpath)))
+            return self.driver.find_elements(By.XPATH, xpath)
+        except (TimeoutException, WebDriverException):
+            logger.error(f"Ocorreu um erro ao tentar encontrar elementos contendo o texto: {text}")
+            return []
+
+    def element_exists1(self, xpath, timeout=10):
         """
         Checks if an element exists on the page within a given timeout.
         """
@@ -39,6 +48,17 @@ class WebPageHandler:
         except (TimeoutException, WebDriverException):
             logger.error(f"An error occurred while trying to element exists : {xpath}")
             return False
+        
+    def element_exists(self, xpath, timeout=10):
+        """
+        Checks if an element exists on the page within a given timeout.
+        """
+        try:
+            element = self._wait_for_element(xpath, timeout=timeout)
+            return element is not None
+        except (TimeoutException, WebDriverException):
+            logger.error(f"An error occurred while checking for element: {xpath}")
+            return False
 
     def click_element(self, xpath):
         """
@@ -46,12 +66,17 @@ class WebPageHandler:
         """
         try:
             if self.element_exists(xpath):
+                #self.go_to_element(xpath)
                 element = self._wait_for_element(xpath, clickable=True)
-                element.click()
-                self._random_sleep()
-                return True
+                if element:
+                    element.click()
+                    self._random_sleep()
+                    return True
+                else:    
+                    logger.warning(f"Element not found: {xpath}")
+                    return False
             else:
-                logger.error(f"Element not found: {xpath}")
+                logger.warning(f"Element not found: {xpath}")
                 return False
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
@@ -64,7 +89,7 @@ class WebPageHandler:
                 self._random_sleep()
                 return True
             else:
-                logger.error(f"Element not found: {xpath}")
+                logger.warning(f"Element not found: {xpath}")
                 return False
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
@@ -95,12 +120,13 @@ class WebPageHandler:
 
     def get_text_by_xpath(self, xpath):
         try:
-            if self.element_exists(xpath, timeout= 2):
-                element = self._wait_for_element(xpath, clickable=True)
+            #if self.element_exists(xpath, timeout= 2):,
+            element = self._wait_for_element(xpath, clickable=True)
+            if element:
                 return element.text
             else:
                 logger.error(f"Element not found: {xpath}")
-                return False
+                return None
         except (NoSuchElementException, TimeoutException) as e:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
             return None
