@@ -17,8 +17,8 @@
 #apt-get install -y python3-pip python3-selenium python3-venv chromium-chromedriver xvfb
 
 # Configurações do Xvfb
-export DISPLAY=:1
-Xvfb $DISPLAY -screen $DISPLAY 1280x1024x16 &
+#export DISPLAY=:1
+#Xvfb $DISPLAY -screen $DISPLAY 1280x1024x16 &
 
 # Instale as dependências do Python
 pip install -r requirements.txt
