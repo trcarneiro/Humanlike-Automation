@@ -37,6 +37,6 @@ Session = sessionmaker(bind=engine)
 
 def get_pending_actions():
     session = Session()
-    pending_actions = session.query(HomeAction).filter(/* sua condição */).all()
+    pending_actions = session.query(HomeAction).filter(HomeAction.status == 'Pending').all()
     session.close()
     return pending_actions
