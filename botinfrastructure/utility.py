@@ -57,7 +57,7 @@ class Utility:
         finally:
             os.remove(lock_file)
             
-    def send_error_to_telegram(self, exception):
+    '''def send_error_to_telegram(self, exception):
         message = f"Error: {str(exception)}"
         try:
             requests.post(
@@ -68,7 +68,7 @@ class Utility:
                 }
             )
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error sending message to Telegram: {e}")
+            self.logger.error(f"Error sending message to Telegram: {e}")'''
 
     def save_data(self, data, file_name, directory):
         if not os.path.exists(directory):
