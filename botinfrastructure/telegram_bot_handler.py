@@ -86,6 +86,21 @@ class TelegramBotHandler:
         await update.message.reply_text(thank_you_message)
         return ConversationHandler.END
 
+    async def request_auth_code(self):
+        question = "Por favor, forneça o código de autenticação para continuar:"
+        await self.bot.send_message(chat_id=self.chat_id, text=question)
+        return ASKING_QUESTION  # Ou outro estado que você desejar
+
+    async def receive_auth_code(self, update: Update, context: CallbackContext) -> int:
+        auth_code = update.message.text
+        # Agora você tem o código de autenticação, pode passá-lo para o seu processo de login
+        # ...
+        thank_you_message = f"Código de autenticação recebido: {auth_code}"
+        await update.message.reply_text(thank_you_message)
+        return ConversationHandler.END  # Ou outro estado que você desejar
+    
+    
+
     def run(self):
         self.application.run_polling()
 
