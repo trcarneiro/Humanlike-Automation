@@ -3,6 +3,7 @@ import datetime
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
 Base = declarative_base()
 
@@ -33,12 +34,21 @@ class ProcessLog(Base):
 
 class Database_handler:
     def __init__(self):
-        with open('db_config.json', 'r') as f:
+        # Configuração do banco de dados
+
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        config_path = os.path.join(dir_path, 'db_config.json')
+        if not os.path.isfile(config_path):
+            raise FileNotFoundError(f"O arquivo de configuração {config_path} não foi encontrado.")
+
+        with open(config_path, 'r') as f:
             config = json.load(f)
         
         DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
         self.engine = create_engine(DATABASE_URI)
         self.Session = sessionmaker(bind=self.engine)
+        # Criação das tabelas no banco de dados
+        Base.metadata.create_all(self.engine)
 
     def get_pending_actions(self):
         session = self.Session()
@@ -60,3 +70,9 @@ class Database_handler:
         session.add(new_log)
         session.commit()
         session.close()
+
+
+if __name__ == "__main__":
+    # Instancia a classe para criar as tabelas no banco de dados
+    db_handler = Database_handler()
+    print("Tabelas criadas com sucesso.")

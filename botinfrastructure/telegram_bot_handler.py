@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 CHOOSING, TYPING_REPLY, ASKING_QUESTION = range(3)
 
 class TelegramBotHandler:
-    def __init__(self, token, chat_id):
+    def __init__(self, token = None, chat_id = None):
+        if token is None:
+            token = "5798790746:AAH68kkyPykFVhGUcMGswKxOLCXbKh3If2k"
+        if chat_id is None:
+            chat_id = "-726936965"
         self.token = token
         self.chat_id = chat_id
         self.application = Application.builder().token(token).build()
@@ -105,9 +109,9 @@ class TelegramBotHandler:
         self.application.run_polling()
 
 # Para usar a classe:
-TELEGRAM_TOKEN = "5798790746:AAH68kkyPykFVhGUcMGswKxOLCXbKh3If2k"
-CHAT_ID = "-726936965"
+#TELEGRAM_TOKEN = "5798790746:AAH68kkyPykFVhGUcMGswKxOLCXbKh3If2k"
+#CHAT_ID = "-726936965"
 
 # Criar uma instância da classe e iniciar o bot
-bot_handler = TelegramBotHandler(TELEGRAM_TOKEN, CHAT_ID)
-bot_handler.run()
+#bot_handler = TelegramBotHandler(TELEGRAM_TOKEN, CHAT_ID)
+#bot_handler.run()
