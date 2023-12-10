@@ -103,8 +103,6 @@ class TelegramBotHandler:
         await update.message.reply_text(thank_you_message)
         return ConversationHandler.END  # Ou outro estado que você desejar
     
-    
-
     def run(self):
         self.application.run_polling()
 

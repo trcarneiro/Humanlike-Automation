@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import FakeUserAgent
-from .utility import *  # Certifique-se de importar a classe Utility corretamente
+from utility import *  
 
 # Configuração de logging
 logger = logging.getLogger('BrowserHandler')
@@ -28,6 +28,13 @@ class BrowserHandler:
         self.ua = FakeUserAgent()
         self.user_agent = self.ua.random
         self.profile_folder = profile_folder
+
+    def close(self):
+        self.driver.quit()    
+        
+    # Add a new method to return the initialized driver
+    def get_driver(self):
+        return self.driver
 
     def _random_sleep(self, min_seconds=5, max_seconds=10):
         """Pause the execution for a random time."""
@@ -47,6 +54,7 @@ class BrowserHandler:
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_argument("--verbose")
         chrome_options.add_argument("--log-path=chromedriver.log")
+        chrome_options.add_argument("--remote-debugging-port=9222") 
         return chrome_options
 
     def initialize_driver(self):

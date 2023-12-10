@@ -6,8 +6,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from .utility import *  
-from .browserhandler import *  
+from utility import *  
+from browserhandler import *  
+
 
 # Initialize logging
 logging.basicConfig(level=logging.ERROR)
@@ -95,6 +96,17 @@ class WebPageHandler:
             logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
             return None            
 
+    def get_element_on_element_xpath(self, elem, xpath):
+        try:
+            element_item =  elem.find_element(By.XPATH, xpath)
+            if element_item:
+                return element_item
+            else:
+                logger.warning(f"Element not found: {xpath}")
+                return False
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to element exists : {e}{xpath}")
+            return None          
 
     def _random_sleep(self, min_seconds=2, max_seconds=5):
         sleep_duration = random.uniform(min_seconds, max_seconds)
@@ -184,3 +196,28 @@ class WebPageHandler:
         except WebDriverException as e:
             logging.error(f"An error occurred while trying to open the link: {e}")
             return None
+        
+    def get_xpath(self, element):
+        """
+        Generate unique XPath for a BeautifulSoup element.
+        """
+        components = []
+        child = element if element.name else element.parent
+        for parent in child.parents:
+            siblings = parent.find_all(child.name, recursive=False)
+            # Verifica se o elemento é o único do seu tipo entre os irmãos
+            if len(siblings) == 1:
+                components.append(child.name)
+            else:
+                # Conta a posição do elemento entre os irmãos do mesmo tipo
+                count = 1
+                for sibling in siblings:
+                    if sibling == child:
+                        break
+                    if sibling.name == child.name:
+                        count += 1
+                components.append(f"{child.name}[{count}]")
+            child = parent
+
+        components.reverse()
+        return '/'.join(components)
