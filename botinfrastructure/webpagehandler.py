@@ -6,8 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from utility import *  
-from browserhandler import *  
+from .utility import *  
+from .browserhandler import *  
 
 
 # Initialize logging
@@ -19,6 +19,9 @@ class WebPageHandler:
     def __init__(self, driver):
         self.driver = driver
         self.utils = Utility()
+        
+    '''def printscreen(self):
+        self.driver.save_screenshot('screenshot.png')'''
 
     def _wait_for_element(self, xpath, timeout=10, clickable=False):
         condition = EC.element_to_be_clickable if clickable else EC.presence_of_element_located

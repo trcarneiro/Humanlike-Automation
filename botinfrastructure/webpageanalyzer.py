@@ -2,9 +2,9 @@ import logging
 from selenium import webdriver
 from bs4 import BeautifulSoup, Tag
 import json
-from utility import Utility
-from ai_handler import AiAnalyzer
-from webpagehandler import WebPageHandler # Importe ou defina esta classe
+from .utility import Utility
+from .ai_handler import AiAnalyzer
+from .webpagehandler import WebPageHandler # Importe ou defina esta classe
 
 
 class WebpageAnalyzer:
