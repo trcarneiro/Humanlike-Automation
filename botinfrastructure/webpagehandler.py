@@ -133,10 +133,10 @@ class WebPageHandler:
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         self._random_sleep()
 
-    def get_text_by_xpath(self, xpath):
+    def get_text_by_xpath(self, xpath, timeout=10):
         try:
             #if self.element_exists(xpath, timeout= 2):,
-            element = self._wait_for_element(xpath, clickable=True)
+            element = self._wait_for_element(xpath, timeout=10, clickable=True)
             if element:
                 return element.text
             else:
