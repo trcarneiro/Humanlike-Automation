@@ -30,16 +30,28 @@ class BrowserHandler:
         self.profile_folder = profile_folder
 
     def close(self):
-        self.driver.quit()    
+        self.driver.quit()   
+        
+    def measure_page_load_time(self, url):
+        start_time = time.time()
+        self.driver.get(url)
+        WebDriverWait(self.driver, 30).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
+        end_time = time.time()
+        load_time = end_time - start_time
+        logger.info(f"Page loaded in {load_time:.2f} seconds.")
+        return load_time
+ 
         
     # Add a new method to return the initialized driver
     def get_driver(self):
         return self.driver
 
-    def _random_sleep(self, min_seconds=5, max_seconds=10):
+    def _random_sleep(self, min_seconds=1, max_seconds=4):
         """Pause the execution for a random time."""
         sleep_time = random.uniform(min_seconds, max_seconds)
-        logger.info(f"Sleeping for {sleep_time:.2f} seconds.")
+        logger.info(f"Sleeping for1 {sleep_time:.2f} seconds.")
         time.sleep(sleep_time)
 
     def _initialize_webdriver_options(self):
@@ -86,6 +98,7 @@ class BrowserHandler:
         if not self.driver:
             logger.error("Driver not initialized.")
             raise Exception("Driver not initialized.")
+        result = {"bot_detected": False, "error": None}
         try:
             self.driver.execute_script("window.open('', '_blank');")
             self.driver.switch_to.window(self.driver.window_handles[-1])
@@ -102,17 +115,46 @@ class BrowserHandler:
             self._random_sleep(5, 10)
             if self.driver.find_elements(By.XPATH, '//*[@id="challenge-stage"]'):
                 logging.warning(f"Bot detected on site: {self.site}")
+                result["bot_detected"] = True
                 return False
             return True
         except Exception as e:
             logger.error(f"Exception occurred during bot validation: {e}")
             self.utility.print_exception()
-            raise
+            result["error"] = str(e)
+            raise    
+        
+    def load_and_validate_page(self, url):
+        """Carrega uma página, valida os dados e mede o tempo de carregamento."""
+        start_time = time.time()  # Marca o tempo de início
+        self.driver.get(url)  # Carrega a página
+        # Implemente sua lógica de validação de dados aqui...
+        
+        # Verificação de bloqueio pode ser parte de validate_bot ou um novo método
+        bot_detected = self.validate_bot()  # Retorna False se bot for detectado
+        
+        load_time = time.time() - start_time  # Calcula o tempo de carregamento
+        logger.info(f"Tempo de carregamento da página: {load_time:.2f} segundos.")
+        
+        # Log de detecção de bot
+        if bot_detected:
+            logger.info("Nenhum bloqueio detectado.")
+        else:
+            logger.warning("Bloqueio de bot detectado!")
+        
+        # Retorne informações relevantes como parte do resultado
+        return {
+            "load_time": load_time,
+            "bot_detected": not bot_detected,
+            # Inclua outras métricas ou informações necessárias
+        }  
 
     def execute(self):
         """Execute the main operation."""
         try:
             self.initialize_driver()
+            result = self.load_and_validate_page(self.site)
+            print(result)
             if(self.validate_bot()):
                 return self.driver
             

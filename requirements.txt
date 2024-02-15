@@ -29,3 +29,4 @@ mysql-connector
 python-telegram-bot
 openai
 beautifulsoup4
+sqlalchemy

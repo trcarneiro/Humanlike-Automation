@@ -20,8 +20,14 @@ class WebPageHandler:
         self.driver = driver
         self.utils = Utility()
         
-    '''def printscreen(self):
-        self.driver.save_screenshot('screenshot.png')'''
+    def printscreen(self):
+        self.driver.save_screenshot('screenshot.png')
+        
+    def get_page_html(self):
+        # Imprime o HTML da página para depuração
+        page_html = self.driver.page_source
+
+        return page_html
 
     def _wait_for_element(self, xpath, timeout=10, clickable=False):
         condition = EC.element_to_be_clickable if clickable else EC.presence_of_element_located
@@ -198,7 +204,15 @@ class WebPageHandler:
             return True
         except WebDriverException as e:
             logging.error(f"An error occurred while trying to open the link: {e}")
+            self.handle_driver_failure()
             return None
+        
+    def handle_driver_failure(self):
+        """Lida com falhas do driver reinicializando-o."""
+        logging.error("Reinicializando o driver do navegador...")
+        #self.driver.quit()  # Fecha o navegador atual
+        browser_handler = BrowserHandler(site=self.site, profile=profile, proxy=None, profile_folder=profile_folder)
+        self.driver = self.browser_handler.initialize_driver()  # Inicializa um novo navegador
         
     def get_xpath(self, element):
         """
@@ -224,3 +238,37 @@ class WebPageHandler:
 
         components.reverse()
         return '/'.join(components)
+    
+    def get_attribute_of_element(self, elem, xpath, attribute):
+        try:
+            element_item = elem.find_element(By.XPATH, xpath)
+            if element_item:
+                return element_item.get_attribute(attribute)
+            else:
+                logger.warning(f"Element not found for xpath: {xpath}")
+                return None
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to get attribute '{attribute}': {e}{xpath}")
+            return None
+
+    def get_elements_by_tag(self, TAG):
+        try:
+            elements = self.driver.find_elements(By.TAG_NAME, TAG)
+            return elements
+        except WebDriverException as e:
+            logger.error(f"An error occurred while trying to find the elements: {e}")
+            return None
+        
+    def get_elements_by_tag_from_element(self, element, tag_name):
+        """
+        Returns a list of elements found within a specific element by tag name.
+
+        :param element: The parent element to search within.
+        :param tag_name: The tag name to search for.
+        :return: A list of WebElement instances found; empty list if none are found.
+        """
+        try:
+            return element.find_elements(By.TAG_NAME, tag_name)
+        except WebDriverException as e:
+            logger.error(f"Error finding elements by tag '{tag_name}': {e}")
+            return []
