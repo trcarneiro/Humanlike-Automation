@@ -204,15 +204,15 @@ class WebPageHandler:
             return True
         except WebDriverException as e:
             logging.error(f"An error occurred while trying to open the link: {e}")
-            self.handle_driver_failure()
-            return None
+            #self.handle_driver_failure()
+            return False
         
     def handle_driver_failure(self):
         """Lida com falhas do driver reinicializando-o."""
         logging.error("Reinicializando o driver do navegador...")
         #self.driver.quit()  # Fecha o navegador atual
-        browser_handler = BrowserHandler(site=self.site, profile=profile, proxy=None, profile_folder=profile_folder)
-        self.driver = self.browser_handler.initialize_driver()  # Inicializa um novo navegador
+        #browser_handler = BrowserHandler(site=self.site, profile=profile, proxy=None, profile_folder=profile_folder)
+        #self.driver = self.browser_handler.initialize_driver()  # Inicializa um novo navegador
         
     def get_xpath(self, element):
         """

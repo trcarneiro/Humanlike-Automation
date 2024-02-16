@@ -243,7 +243,7 @@ class SquadronScraper:
         tournaments_info = []  # Inicializa fora do loop para acumular dados de todos os torneios encontrados
         
         try:
-            self.web_handler.open_link(base_url)
+            browseractive = self.web_handler.open_link(base_url)
             self.logger.info(f"Opened URL: {base_url}")
             
             self.web_handler.click_element("//a[normalize-space()='Tournaments']")
@@ -280,6 +280,101 @@ class SquadronScraper:
         
         self.logger.info("Successfully fetched tournament information.")
         return tournaments_info
+    
+import logging
+from selenium.common.exceptions import WebDriverException
+
+class BrowserSessionManager:
+    def __init__(self, max_instances=5):
+        self.max_instances = max_instances
+        self.active_sessions = []
+        self.failed_attempts = 0
+
+    def initialize_session(self, site, profile, proxy, profile_folder):
+        if len(self.active_sessions) >= self.max_instances:
+            logging.error("Máximo de instâncias de navegador atingido.")
+            return None
+
+        try:
+            browser_handler = BrowserHandler(site=site, profile=profile, proxy=proxy, profile_folder=profile_folder)
+            web_handler = WebPageHandler(browser_handler.execute())
+            self.active_sessions.append((browser_handler, web_handler))
+            return web_handler
+        except Exception as e:
+            logging.error(f"Erro ao iniciar sessão do navegador: {e}")
+            self.handle_failure()
+            return None
+
+    def handle_failure(self):
+        self.failed_attempts += 1
+        if self.failed_attempts < 3:  # Tentar novamente até um limite
+            logging.warning("Tentando reiniciar a sessão do navegador...")
+            # Reinicie a sessão aqui, possivelmente chamando `initialize_session` novamente
+        else:
+            logging.error("Falhas consecutivas ao iniciar sessão do navegador. Verifique a conexão ou configurações.")
+
+    def close_session(self, web_handler):
+        for browser_handler, _web_handler in self.active_sessions:
+            if _web_handler == web_handler:
+                browser_handler.close()
+                self.active_sessions.remove((browser_handler, web_handler))
+                logging.info("Sessão do navegador encerrada.")
+                break
+
+    def restart_session(self, web_handler):
+        self.close_session(web_handler)
+        # Recriar a sessão aqui, possivelmente chamando `initialize_session` com os mesmos parâmetros
+        # Isso pode exigir armazenar os parâmetros de sessão para reutilização
+        
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Starting Squadron Scraper")
+    
+    try:
+        with open('db_config.json', 'r') as f:
+            config = json.load(f)
+        
+        DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+        manager = BrowserSessionManager(max_instances=3)
+        
+        # Inicializa a sessão do navegador
+        web_handler = manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
+        if web_handler:
+            scraper = SquadronScraper(web_handler)
+            dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
+            
+            # Execute as operações de scraping aqui
+            info = asyncio.run(scraper.get_squadron_leaderboard_info(num_clans=100))
+            dynamic_data_handler.insert_data('SquadronLeaderboard', info)
+
+            for i in info:
+                squadron_info, squadron_players = asyncio.run(scraper.get_squadron_info(i['link']))
+                dynamic_data_handler.insert_data('squadroninfo', squadron_info)
+                dynamic_data_handler.insert_data('squadronplayers', squadron_players)
+            
+            logging.info("Data collection and database insertion completed successfully.")
+        else:
+            logging.error("Failed to initialize web handler.")
+            
+    except json.JSONDecodeError as e:
+        logging.error("Failed to parse JSON configuration: %s", e, exc_info=True)
+    except Exception as e:
+        logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
+    finally:
+        # Fecha todas as sessões ativas do navegador
+        for _browser_handler, _ in manager.active_sessions:
+            _browser_handler.close()
+        logging.info("Squadron Scraper has finished running.")
+
+'''if __name__ == "__main__":
+    manager = BrowserSessionManager(max_instances=3)
+    web_handler = manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
+    if web_handler:
+        # Faça suas operações de scraping aqui
+        # Se ocorrer um erro, considere reiniciar a sessão:
+        # manager.restart_session(web_handler)
+        pass
+
 
 
 if __name__ == "__main__":
@@ -314,4 +409,4 @@ if __name__ == "__main__":
         logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
     finally:
         browser_handler.close()
-        logging.info("Squadron Scraper has finished running.")
+        logging.info("Squadron Scraper has finished running.")'''
