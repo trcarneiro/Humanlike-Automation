@@ -330,41 +330,43 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info("Starting Squadron Scraper")
     
-    try:
-        with open('db_config.json', 'r') as f:
-            config = json.load(f)
-        
-        DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
-        manager = BrowserSessionManager(max_instances=3)
-        
-        # Inicializa a sessão do navegador
-        web_handler = manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
-        if web_handler:
-            scraper = SquadronScraper(web_handler)
-            dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
-            
-            # Execute as operações de scraping aqui
-            info = asyncio.run(scraper.get_squadron_leaderboard_info(num_clans=100))
-            dynamic_data_handler.insert_data('SquadronLeaderboard', info)
+    while True:
+        try:
+            with open('db_config.json', 'r') as f:
+                config = json.load(f)
 
-            for i in info:
-                squadron_info, squadron_players = asyncio.run(scraper.get_squadron_info(i['link']))
-                dynamic_data_handler.insert_data('squadroninfo', squadron_info)
-                dynamic_data_handler.insert_data('squadronplayers', squadron_players)
-            
-            logging.info("Data collection and database insertion completed successfully.")
-        else:
-            logging.error("Failed to initialize web handler.")
-            
-    except json.JSONDecodeError as e:
-        logging.error("Failed to parse JSON configuration: %s", e, exc_info=True)
-    except Exception as e:
-        logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
-    finally:
-        # Fecha todas as sessões ativas do navegador
-        for _browser_handler, _ in manager.active_sessions:
-            _browser_handler.close()
-        logging.info("Squadron Scraper has finished running.")
+            DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+            manager = BrowserSessionManager(max_instances=3)
+
+            # Inicializa a sessão do navegador
+            web_handler = manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
+            if web_handler:
+                scraper = SquadronScraper(web_handler)
+                dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
+
+                # Execute as operações de scraping aqui
+                info = asyncio.run(scraper.get_squadron_leaderboard_info(num_clans=100))
+                dynamic_data_handler.insert_data('SquadronLeaderboard', info)
+
+                for i in info:
+                    squadron_info, squadron_players = asyncio.run(scraper.get_squadron_info(i['link']))
+                    dynamic_data_handler.insert_data('squadroninfo', squadron_info)
+                    dynamic_data_handler.insert_data('squadronplayers', squadron_players)
+
+                logging.info("Data collection and database insertion completed successfully.")
+            else:
+                logging.error("Failed to initialize web handler.")
+
+        except json.JSONDecodeError as e:
+            logging.error("Failed to parse JSON configuration: %s", e, exc_info=True)
+        except Exception as e:
+            logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
+        finally:
+            # Fecha todas as sessões ativas do navegador
+            for _browser_handler, _ in manager.active_sessions:
+                _browser_handler.close()
+            logging.info("Squadron Scraper has finished running.")
+        
 
 '''if __name__ == "__main__":
     manager = BrowserSessionManager(max_instances=3)

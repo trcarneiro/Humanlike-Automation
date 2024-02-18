@@ -8,6 +8,9 @@ from datetime import datetime, date
 import asyncio
 from datetime import datetime  
 from wt_scrapydata import SquadronScraper 
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
    
    
 logging.info("Starting Squadron Scraper")
