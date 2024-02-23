@@ -2,13 +2,29 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, 
 from sqlalchemy.orm import sessionmaker, declarative_base, mapper
 from datetime import datetime
 import json
+import logging
 
 Base = declarative_base()
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    filename='squadron_scraper.log',
+                    filemode='w')
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+console_handler.setFormatter(formatter)
+logging.getLogger('').addHandler(console_handler)
 
 class DynamicDataHandler:
     def __init__(self, database_uri):
         self.engine = create_engine(database_uri)
         self.Session = sessionmaker(bind=self.engine)
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info("Initializing DynamicDataHandler...")
 
     def create_dynamic_model(self, table_name, data_sample):
         metadata = MetaData()
@@ -55,8 +71,12 @@ class DynamicDataHandler:
             if not exists:
                 record = DynamicModel(**data)
                 session.add(record)
+                print(F"Data inserted: {data}")
+                self.logger.info(F"Data inserted: {data}")
             else:
-                print(F"Duplicate data found: {data}")
+                self.logger.info(F"Duplicate data found: {data}")
+                ''''''
+                #print(F"Duplicate data found: {data}")
 
         session.commit()
         session.close()

@@ -13,6 +13,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import FakeUserAgent
 from .utility import *  
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
 
 # Configuração de logging
 logger = logging.getLogger('BrowserHandler')
@@ -48,11 +51,10 @@ class BrowserHandler:
     def get_driver(self):
         return self.driver
 
-    def _random_sleep(self, min_seconds=1, max_seconds=4):
-        """Pause the execution for a random time."""
+    async def _random_sleep(self, min_seconds=1, max_seconds=4):
         sleep_time = random.uniform(min_seconds, max_seconds)
-        logger.info(f"Sleeping for1 {sleep_time:.2f} seconds.")
-        time.sleep(sleep_time)
+        logger.info(f"Sleeping for {sleep_time:.2f} seconds.")
+        await asyncio.sleep(sleep_time)
 
     def _initialize_webdriver_options(self):
         """Initialize Chrome options for WebDriver."""
@@ -68,6 +70,12 @@ class BrowserHandler:
         chrome_options.add_argument("--log-path=chromedriver.log")
         chrome_options.add_argument("--remote-debugging-port=9222") 
         return chrome_options
+
+    async def async_initialize_driver(self):
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor()
+        await loop.run_in_executor(executor, self.initialize_driver)       
+
 
     def initialize_driver(self):
         """Initialize the Selenium WebDriver."""
@@ -112,7 +120,7 @@ class BrowserHandler:
                 EC.presence_of_element_located((By.CSS_SELECTOR, "h3"))
             )
             self.driver.find_element(By.CSS_SELECTOR, "h3").click()
-            self._random_sleep(5, 10)
+            #self._random_sleep()
             if self.driver.find_elements(By.XPATH, '//*[@id="challenge-stage"]'):
                 logging.warning(f"Bot detected on site: {self.site}")
                 result["bot_detected"] = True
@@ -153,10 +161,10 @@ class BrowserHandler:
         """Execute the main operation."""
         try:
             self.initialize_driver()
-            result = self.load_and_validate_page(self.site)
-            print(result)
-            if(self.validate_bot()):
-                return self.driver
+            #result = self.load_and_validate_page(self.site)
+            #print(result)
+            #if(self.validate_bot()):
+            return self.driver
             
         except Exception as e:
             logger.error(f"Exception occurred during execution: {e}")

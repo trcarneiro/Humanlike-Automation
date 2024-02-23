@@ -10,14 +10,14 @@ import asyncio
 from datetime import datetime
 
 # Configure logging
-'''logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     filename='squadron_scraper.log',
-                    filemode='w')'''
+                    filemode='w')
 
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
+console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 console_handler.setFormatter(formatter)
 logging.getLogger('').addHandler(console_handler)
@@ -84,7 +84,7 @@ class SquadronScraper:
                         'deaths': self.web_handler.get_text_on_element(row, ".//td[7]").strip(),
                         'flight_time': self.web_handler.get_text_on_element(row, ".//td[8]").strip()
                     }
-                    print(squadron_info)
+                    #print(squadron_info)
                     squadrons_info.append(squadron_info)
                     self.logger.debug("Added squadron info: %s", squadron_info['name'])
                     
@@ -119,14 +119,14 @@ class SquadronScraper:
 
         # Data de criação
         creation_date_xpath = "//div[@class='squadrons-info__meta-item squadrons-info__meta-item--date']"
+        creation_date = self.web_handler.get_text_by_xpath(creation_date_xpath).split(": ")[1]
         
         if num_players_text is None:
             self.logger.error(f"Could not find the number of players for URL: {url}")
             num_players = "Unknown"  # or set to a default value or handle the error as needed
         else:
             num_players = num_players_text.split(": ")[1]
-            
-
+        
         creation_date_raw = self.web_handler.get_text_by_xpath(creation_date_xpath).split(": ")[1]
         creation_date_converted = self.convert_date_format(creation_date_raw)  # Converte a data
 
@@ -175,7 +175,8 @@ class SquadronScraper:
             # O cargo é o texto do quinto elemento (nota: pode ser oculto em dispositivos móveis)
             role = members_elements[i + 4].text.strip()
             
-            # A data de admissão é o texto do sexto elemento (nota: pode ser oculto em dispositivos móveis)            
+            # A data de admissão é o texto do sexto elemento (nota: pode ser oculto em dispositivos móveis)
+            
             date_of_entry_raw = members_elements[i + 5].text.strip()
             date_of_entry_converted = self.convert_date_format(date_of_entry_raw)
 
@@ -252,65 +253,45 @@ class SquadronScraper:
         
         self.logger.info("Successfully fetched tournament information.")
         return tournaments_info
-              
-async def scrape_squadron_info(web_handler, url): 
-        print("Scraping squadron info")
+  
+async def scrape_squadron_info(web_handler, url, dynamic_data_handler):
+    """
+    Função assíncrona para fazer o scrape de informações do esquadrão a partir de uma URL específica
+    e inserir os dados usando o dynamic_data_handler.
+    """
+    squadron_info, squadron_players = await web_handler.get_squadron_info(url)
+    dynamic_data_handler.insert_data('squadroninfo', squadron_info)
+    dynamic_data_handler.insert_data('squadronplayers', squadron_players)
+
+async def main():
+    try:
         with open('db_config.json', 'r') as f:
             config = json.load(f)
 
         DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
-        dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
-    
-        #print(web_handler)
-    
-        scraper = SquadronScraper(web_handler)   
-                         
-        squadron_info, squadron_players = await scraper.get_squadron_info(url)
-        print(squadron_info)
-        dynamic_data_handler.insert_data('squadroninfo', squadron_info)
-        dynamic_data_handler.insert_data('squadronplayers', squadron_players)
-        #logger.info(f"Inserted data for squadron: {squadron_info['name']}")
+        manager = BrowserSessionManager(max_instances=5)  # Ajuste para 5 instâncias conforme solicitado
 
-async def main():
-    
-    while True:
-        try:
-            with open('db_config.json', 'r') as f:
-                config = json.load(f)
+        web_handler = await manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
+        if web_handler:
+            scraper = SquadronScraper(web_handler)
+            dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
 
-            DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
-            manager = BrowserSessionManager(max_instances=5)  # Ajuste para 5 instâncias conforme solicitado
+            # Primeira parte: obtenção dos links
+            links = await scraper.get_squadron_leaderboard_info(num_clans=5)
+            dynamic_data_handler.insert_data('SquadronLeaderboard', links)
 
-            session_info = await manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
-            web_handler = session_info['handler']
+            # Segunda parte: processamento dos links em paralelo
+            urls = [link['link'] for link in links]  # Assumindo que get_squadron_leaderboard_info retorna uma lista de dicionários com a chave 'url'
+            await manager.run_scraping_tasks(urls, scraper.get_squadron_info, dynamic_data_handler)
 
-            if web_handler:
-                scraper = SquadronScraper(web_handler)
-                dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
+            logging.info("Data collection and database insertion completed successfully.")
+        else:
+            logging.error("Failed to initialize web handler.")
 
-                # Primeira parte: obtenção dos links
-                links = await scraper.get_squadron_leaderboard_info(num_clans=30)
-                dynamic_data_handler.insert_data('SquadronLeaderboard', links)
-                web_handler.close()
-
-                # Segunda parte: processamento dos links em paralelo
-                
-            #urls = ["https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brazil", "https://warthunder.com/pt/community/claninfo/WarThunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20BrasiI", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil%20Pontuacao",  "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brazil", "https://warthunder.com/pt/community/claninfo/WarThunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20BrasiI", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil%20Pontuacao"]
-                
-            #urls = [link['link'] for link in links]
-            #for url in urls:
-            #    await scrape_squadron_info(web_handler, url)
-            
-                logging.info("Data collection and database insertion completed successfully.")
-            else:
-                logging.error("Failed to initialize web handler.")
-                #import
-                #time.sleep(240)
-
-        except json.JSONDecodeError as e:
-            logging.error("Failed to parse JSON configuration: %s", e)
-        except Exception as e:
-            logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
+    except json.JSONDecodeError as e:
+        logging.error("Failed to parse JSON configuration: %s", e)
+    except Exception as e:
+        logging.exception("An unexpected error occurred during the squadron scraping process: %s", e)
 
 if __name__ == "__main__":
     asyncio.run(main())

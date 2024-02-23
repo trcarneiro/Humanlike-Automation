@@ -4,6 +4,9 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
+
+
 
 Base = declarative_base()
 
@@ -37,6 +40,15 @@ class HomeBot(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)  # Adicionado tamanho
     description = Column(Text)
+    
+class ScriptSchedule(Base):
+    __tablename__ = 'script_schedule'
+    id = Column(Integer, primary_key=True)
+    script_name = Column(String)
+    script_path = Column(String)
+    frequency = Column(Integer)  # Frequency in minutes
+    next_run = Column(DateTime, default=datetime.datetime.utcnow)
+    last_run = Column(DateTime)
 
 
 class Database_handler:
@@ -99,4 +111,29 @@ class Database_handler:
             process.status = status
             session.commit()
         session.close()
+        
+    def add_script_schedule(self, script_name, script_path, frequency):
+        session = self.Session()
+        next_run = datetime.datetime.now() + datetime.timedelta(minutes=frequency)
+        new_schedule = ScriptSchedule(script_name=script_name, script_path=script_path, frequency=frequency, next_run=next_run)
+        session.add(new_schedule)
+        session.commit()
+        session.close()
+
+    def run_scheduled_scripts(self):
+        now = datetime.datetime.now()
+        session = self.Session()
+        due_scripts = session.query(ScriptSchedule).filter(ScriptSchedule.next_run <= now).all()
+        
+        for script in due_scripts:
+            exec(open(script.script_path).read(), globals())
+            script.last_run = now
+            script.next_run = now + datetime.timedelta(minutes=script.frequency)
+        
+        session.commit()
+        session.close()
+
+    '''scheduler = BackgroundScheduler()
+    scheduler.add_job(run_scheduled_scripts, 'interval', minutes=1)
+    scheduler.start()'''
 

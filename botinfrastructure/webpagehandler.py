@@ -272,3 +272,7 @@ class WebPageHandler:
         except WebDriverException as e:
             logger.error(f"Error finding elements by tag '{tag_name}': {e}")
             return []
+        
+    def close(self):
+        self.driver.quit()
+        logger.info("Browser session closed.")
