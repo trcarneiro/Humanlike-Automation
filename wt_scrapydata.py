@@ -85,7 +85,7 @@ class SquadronScraper:
                         'deaths': self.web_handler.get_text_on_element(row, ".//td[7]").strip(),
                         'flight_time': self.web_handler.get_text_on_element(row, ".//td[8]").strip()
                     }
-                    #print(squadron_info)
+                    print(squadron_info)
                     squadrons_info.append(squadron_info)
                     self.logger.debug("Added squadron info: %s", squadron_info['name'])
                     
@@ -290,9 +290,9 @@ async def main():
                 dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
 
                 # Primeira parte: obtenção dos links
-                links = await scraper.get_squadron_leaderboard_info(num_clans=400)
+                links = await scraper.get_squadron_leaderboard_info(num_clans=600)
                 dynamic_data_handler.insert_data('SquadronLeaderboard', links)
-                web_handler.close()
+                #web_handler.close()
 
                 # Segunda parte: processamento dos links em paralelo
                 
@@ -301,7 +301,7 @@ async def main():
             #urls = [link['link'] for link in links]
             #for url in urls:
             #    await scrape_squadron_info(web_handler, url)
-                #time.sleep(600)
+                time.sleep(600)
 
                 logging.info("Data collection and database insertion completed successfully.")
             else:

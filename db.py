@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, MetaData, Table
-from sqlalchemy.orm import sessionmaker, declarative_base, mapper
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, MetaData, Table, and_
+from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
-import json
 import logging
+from sqlalchemy import and_
 
 Base = declarative_base()
 
@@ -49,7 +49,7 @@ class DynamicDataHandler:
 
         return DynamicTable
 
-    def insert_data(self, table_name, data_list):
+    '''def insert_data(self, table_name, data_list):
         if not data_list:
             print("Data list is empty. No insertion will be made.")
             return
@@ -71,12 +71,41 @@ class DynamicDataHandler:
             if not exists:
                 record = DynamicModel(**data)
                 session.add(record)
-                print(F"Data inserted: {data}")
                 self.logger.info(F"Data inserted: {data}")
             else:
                 self.logger.info(F"Duplicate data found: {data}")
-                ''''''
-                #print(F"Duplicate data found: {data}")
+
+        session.commit()
+        session.close()'''
+        
+    #from sqlalchemy import 
+
+    def insert_data(self, table_name, data_list):
+        if not data_list:
+            print("Data list is empty. No insertion will be made.")
+            return
+
+        DynamicModel = self.create_dynamic_model(table_name, data_list[0])
+
+        session = self.Session()
+
+        # Preparing a list to check for existing records based on unique fields
+        for data in data_list:
+            exists = session.query(DynamicModel).filter(
+                DynamicModel.ground_targets_destroyed == data['ground_targets_destroyed'],
+                DynamicModel.flight_time == data['flight_time'],
+                DynamicModel.duel_ratio == data['duel_ratio']
+            ).first() is not None
+
+            if not exists:
+                record = DynamicModel(**data)
+                session.add(record)
+                print(f"Data inserted: {data}")
+                self.logger.info(f"Data inserted: {data}")
+            else:
+                print(f"Duplicate data found: {data}")
+                self.logger.info(f"Duplicate data found: {data}")
 
         session.commit()
         session.close()
+
