@@ -275,7 +275,7 @@ async def scrape_squadron_info(web_handler, url):
 async def main():
     
     while True:
-        try:           
+        try:
             with open('db_config.json', 'r') as f:
                 config = json.load(f)
 
@@ -290,7 +290,7 @@ async def main():
                 dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
 
                 # Primeira parte: obtenção dos links
-                links = await scraper.get_squadron_leaderboard_info(num_clans=400)
+                links = await scraper.get_squadron_leaderboard_info(num_clans=100)
                 dynamic_data_handler.insert_data('SquadronLeaderboard', links)
                 web_handler.close()
 
@@ -301,7 +301,7 @@ async def main():
             #urls = [link['link'] for link in links]
             #for url in urls:
             #    await scrape_squadron_info(web_handler, url)
-                #time.sleep(600)
+                time.sleep(600)
 
                 logging.info("Data collection and database insertion completed successfully.")
             else:

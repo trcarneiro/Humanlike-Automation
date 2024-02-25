@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from warthunder.database import SessionLocal, engine
-#from warthunder.services import SquadronService
-from warthunder import models, schemas, services
+from warthunder.services import SquadronService
+from warthunder import models, schemas#, services
 from fastapi import APIRouter
 
 models.Base.metadata.create_all(bind=engine)
@@ -14,6 +14,7 @@ router = APIRouter()
 # Dependency to get the database session.
 def get_db():
     db = SessionLocal()
+    #service = SquadronService()
     try:
         yield db
     finally:
@@ -43,11 +44,11 @@ def read_squadron_leaderboard(skip: int = 0, limit: int = 100, db: Session = Dep
 
 # Dependency to get the service instance
 def get_squadron_service(db: Session = Depends(get_db)):
-    return services.SquadronService(db)
+    return SquadronService(db)
 
 @router.get("/active-squadrons/", response_model=List[schemas.SquadronLeaderboardSchema])
-def read_active_squadrons(service: services.SquadronService = Depends(get_squadron_service)):
-    active_squadrons = service.get_recently_active_squadrons()
+def read_active_squadrons(service: SquadronService = Depends(get_squadron_service)):
+    active_squadrons = service.get_recently_inserted_squadrons()
     return active_squadrons
 
 

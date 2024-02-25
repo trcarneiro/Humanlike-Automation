@@ -76,7 +76,7 @@ class DynamicDataHandler:
             else:
                 self.logger.info(F"Duplicate data found: {data}")
                 ''''''
-                #print(F"Duplicate data found: {data}")
+                print(F"Duplicate data found: {data}")
 
         session.commit()
         session.close()

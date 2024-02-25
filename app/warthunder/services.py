@@ -28,7 +28,7 @@ class SquadronService:
         
         return active_squadrons
     
-    def get_recently_inserted_squadrons(self):
+    def get_recently_inserted_squadrons2(self):
         thirty_minutes_ago = datetime.utcnow() - timedelta(minutes=30)
         
         # Consulta para obter esquadrões inseridos nos últimos 30 minutos
@@ -37,6 +37,29 @@ class SquadronService:
         ).all()
     
         return recently_inserted_squadrons
+    
+    from sqlalchemy import func
+
+    def get_recently_inserted_squadrons(self):
+        thirty_minutes_ago = datetime.utcnow() - timedelta(minutes=30)
+        
+        # Subconsulta para contar o número de registros por esquadrão
+        subquery = self.db.query(
+            models.SquadronLeaderboard.name,
+            func.count(models.SquadronLeaderboard.id).label('count')
+        ).group_by(models.SquadronLeaderboard.name).subquery()
+        
+        # Consulta principal para obter esquadrões inseridos nos últimos 30 minutos
+        # e que tenham mais de um registro na tabela
+        recently_inserted_squadrons = self.db.query(models.SquadronLeaderboard).join(
+            subquery, models.SquadronLeaderboard.name == subquery.c.name
+        ).filter(
+            models.SquadronLeaderboard.insert_datetime >= thirty_minutes_ago,
+            subquery.c.count > 1
+        ).all()
+        
+        return recently_inserted_squadrons
+
 
 
 # Continuação do seu código existente...
