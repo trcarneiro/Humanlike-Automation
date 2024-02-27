@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, MetaData, Table, and_
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, MetaData, Table, func, and_
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 import logging
@@ -77,8 +77,7 @@ class DynamicDataHandler:
 
         session.commit()
         session.close()'''
-        
-    #from sqlalchemy import 
+
 
     def insert_data(self, table_name, data_list):
         if not data_list:
@@ -86,25 +85,43 @@ class DynamicDataHandler:
             return
 
         DynamicModel = self.create_dynamic_model(table_name, data_list[0])
-
         session = self.Session()
 
-        # Preparing a list to check for existing records based on unique fields
-        for data in data_list:
-            exists = session.query(DynamicModel).filter(
-                DynamicModel.ground_targets_destroyed == data['ground_targets_destroyed'],
-                DynamicModel.flight_time == data['flight_time'],
-                DynamicModel.duel_ratio == data['duel_ratio']
-            ).first() is not None
+        # Subquery to get latest id for each link
+        subq = session.query(
+            func.max(DynamicModel.id).label("last_id")
+        ).group_by(DynamicModel.link).subquery("subq")
 
-            if not exists:
+        # Query to fetch last records by joining with subquery
+        last_records_query = session.query(DynamicModel).join(
+            subq, DynamicModel.id == subq.c.last_id
+        )
+
+        existing_records = {record.link: record for record in last_records_query}
+
+        for data in data_list:
+            link = data['link']
+            if link in existing_records:
+                current_record = existing_records[link]
+                # Compare relevant fields
+                if not all([
+                    current_record.ground_targets_destroyed == data['ground_targets_destroyed'],
+                    current_record.flight_time == data['flight_time'],
+                    current_record.air_targets_destroyed == data['air_targets_destroyed'],
+                    current_record.deaths == data['deaths']
+                ]):
+                    record = DynamicModel(**data)
+                    session.add(record)
+                    print(f"Data inserted: {data}")
+                    self.logger.info(f"Data inserted: {data}")
+                else:
+                    print(f"Duplicate data found: {data}")
+                    self.logger.info(f"Duplicate data found: {data}")
+            else:
                 record = DynamicModel(**data)
                 session.add(record)
-                print(f"Data inserted: {data}")
-                self.logger.info(f"Data inserted: {data}")
-            else:
-                print(f"Duplicate data found: {data}")
-                self.logger.info(f"Duplicate data found: {data}")
+                print(f"Data inserted for new clan: {data}")
+                self.logger.info(f"Data inserted for new clan: {data}")
 
         session.commit()
         session.close()
