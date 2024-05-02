@@ -49,36 +49,6 @@ class DynamicDataHandler:
 
         return DynamicTable
 
-    '''def insert_data(self, table_name, data_list):
-        if not data_list:
-            print("Data list is empty. No insertion will be made.")
-            return
-
-        DynamicModel = self.create_dynamic_model(table_name, data_list[0])
-
-        session = self.Session()
-
-        for data in data_list:
-            query = session.query(DynamicModel)
-            # Exclui chaves que não devem ser consideradas na verificação de duplicidade( TROCA ESSA LOGICA DEPOIS PARA A CAMADA DA API)
-            check_data = {key: value for key, value in data.items() if key not in ['id', 'insert_datetime','members']}
-            for key, value in check_data.items():
-                query = query.filter(getattr(DynamicModel, key) == value)
-
-            # Verifica se já existe um registro com os mesmos dados
-            exists = query.first() is not None
-
-            if not exists:
-                record = DynamicModel(**data)
-                session.add(record)
-                self.logger.info(F"Data inserted: {data}")
-            else:
-                self.logger.info(F"Duplicate data found: {data}")
-
-        session.commit()
-        session.close()'''
-
-
     def insert_data(self, table_name, data_list):
         if not data_list:
             print("Data list is empty. No insertion will be made.")
@@ -115,7 +85,7 @@ class DynamicDataHandler:
                     print(f"Data inserted: {data}")
                     self.logger.info(f"Data inserted: {data}")
                 else:
-                    print(f"Duplicate data found: {data}")
+                    #print(f"Duplicate data found: {data}")
                     self.logger.info(f"Duplicate data found: {data}")
             else:
                 record = DynamicModel(**data)
@@ -125,4 +95,5 @@ class DynamicDataHandler:
 
         session.commit()
         session.close()
+        print("OK")
 

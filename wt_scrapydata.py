@@ -85,7 +85,7 @@ class SquadronScraper:
                         'deaths': self.web_handler.get_text_on_element(row, ".//td[7]").strip(),
                         'flight_time': self.web_handler.get_text_on_element(row, ".//td[8]").strip()
                     }
-                    #print(squadron_info)
+                    print(squadron_info)
                     squadrons_info.append(squadron_info)
                     self.logger.debug("Added squadron info: %s", squadron_info['name'])
                     

@@ -94,7 +94,6 @@ class SquadronScraper:
                     
             except Exception as e:
                 self.logger.error(f"Failed to fetch squadron leaderboard information on page {page_number}: {e}", exc_info=True)
-                # Opcional: decidir se continua para a próxima página ou não, dependendo da sua lógica de erro
         
         self.logger.info("Successfully fetched squadron leaderboard information across multiple pages.")
         return squadrons_info
@@ -276,12 +275,10 @@ async def main():
             scraper = SquadronScraper(web_handler)
             dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
 
-            # Primeira parte: obtenção dos links
-            links = await scraper.get_squadron_leaderboard_info(num_clans=5)
+            links = await scraper.get_squadron_leaderboard_info(num_clans=200)
             dynamic_data_handler.insert_data('SquadronLeaderboard', links)
 
-            # Segunda parte: processamento dos links em paralelo
-            urls = [link['link'] for link in links]  # Assumindo que get_squadron_leaderboard_info retorna uma lista de dicionários com a chave 'url'
+            urls = [link['link'] for link in links] 
             await manager.run_scraping_tasks(urls, scraper.get_squadron_info, dynamic_data_handler)
 
             logging.info("Data collection and database insertion completed successfully.")

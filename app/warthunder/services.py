@@ -40,26 +40,43 @@ class SquadronService:
     
     from sqlalchemy import func
 
+    from sqlalchemy import func
+    from sqlalchemy.sql import text
+
     def get_recently_inserted_squadrons(self):
         thirty_minutes_ago = datetime.utcnow() - timedelta(minutes=30)
         
         # Subconsulta para contar o número de registros por esquadrão
-        subquery = self.db.query(
+        count_subquery = self.db.query(
             models.SquadronLeaderboard.name,
             func.count(models.SquadronLeaderboard.id).label('count')
         ).group_by(models.SquadronLeaderboard.name).subquery()
-        
-        # Consulta principal para obter esquadrões inseridos nos últimos 30 minutos
-        # e que tenham mais de um registro na tabela
-        recently_inserted_squadrons = self.db.query(models.SquadronLeaderboard).join(
-            subquery, models.SquadronLeaderboard.name == subquery.c.name
-        ).filter(
-            models.SquadronLeaderboard.insert_datetime >= thirty_minutes_ago,
-            subquery.c.count > 1
-        ).all()
-        
-        return recently_inserted_squadrons
 
+        # CTE ou Subconsulta para atribuir números de linha com base em insert_datetime para cada esquadrão
+        row_number_subquery = self.db.query(
+            models.SquadronLeaderboard.id,
+            models.SquadronLeaderboard.name,
+            models.SquadronLeaderboard.insert_datetime,
+            func.row_number().over(
+                partition_by=models.SquadronLeaderboard.name,
+                order_by=models.SquadronLeaderboard.insert_datetime.desc()
+            ).label('row_num')
+        ).filter(
+            models.SquadronLeaderboard.insert_datetime >= thirty_minutes_ago
+        ).subquery()
+
+        # Consulta principal para obter apenas o registro mais recente para cada esquadrão
+        # que foi inserido nos últimos 30 minutos e que tem mais de um registro
+        recently_inserted_squadrons = self.db.query(models.SquadronLeaderboard).join(
+            count_subquery, models.SquadronLeaderboard.name == count_subquery.c.name
+        ).join(
+            row_number_subquery, models.SquadronLeaderboard.id == row_number_subquery.c.id
+        ).filter(
+            count_subquery.c.count > 1,
+            row_number_subquery.c.row_num == 1  # Apenas o registro mais recente
+        ).all()
+
+        return recently_inserted_squadrons
 
 
 # Continuação do seu código existente...
