@@ -30,3 +30,5 @@ python-telegram-bot
 openai
 beautifulsoup4
 sqlalchemy
+bs4
+apscheduler
