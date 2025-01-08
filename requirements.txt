@@ -2,7 +2,7 @@ attrs==23.1.0
 certifi==2023.7.22
 cffi==1.16.0
 charset-normalizer==2.1.1
-fake-useragent==1.2.1
+fake-useragent
 h11==0.14.0
 idna==3.4
 outcome==1.2.0

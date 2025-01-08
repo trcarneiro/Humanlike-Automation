@@ -65,7 +65,6 @@ class SquadronScraper:
                 url = base_url.format(page_number)
                 self.web_handler.open_link(url)
                 self.logger.info(f"Opened URL: {url}")
-                #print(f"Opened URL: {url}")
                 
                 leaderboard_xpath = '//*[@id="clan_leaderboard"]/table'
                 self.web_handler._wait_for_element(leaderboard_xpath)
@@ -274,6 +273,8 @@ async def scrape_squadron_info(web_handler, url):
 
 async def main():
     
+    site = "https://warthunder.com"
+    
     while True:
         try:           
             with open('db_config.json', 'r') as f:
@@ -282,26 +283,19 @@ async def main():
             DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
             manager = BrowserSessionManager(max_instances=5)  # Ajuste para 5 instâncias conforme solicitado
 
-            session_info = await manager.initialize_session(site="https://warthunder.com", profile="warthunder", proxy=None, profile_folder="profiles")
+            session_info = await manager.initialize_session(site=site, profile="TST", proxy=None, profile_folder="profiles")
             web_handler = session_info['handler']
 
             if web_handler:
                 scraper = SquadronScraper(web_handler)
                 dynamic_data_handler = DynamicDataHandler(DATABASE_URI)
+                
+                time.sleep(10)
 
                 # Primeira parte: obtenção dos links
-                links = await scraper.get_squadron_leaderboard_info(num_clans=200)
-                dynamic_data_handler.insert_data('SquadronLeaderboard', links)
+                #links = await scraper.get_squadron_leaderboard_info(num_clans=200)
+                #dynamic_data_handler.insert_data('SquadronLeaderboard', links)
                 web_handler.close()
-
-                # Segunda parte: processamento dos links em paralelo
-                
-            #urls = ["https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brazil", "https://warthunder.com/pt/community/claninfo/WarThunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20BrasiI", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil%20Pontuacao",  "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brazil", "https://warthunder.com/pt/community/claninfo/WarThunder%20Brasil", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20BrasiI", "https://warthunder.com/pt/community/claninfo/War%20Thunder%20Brasil%20Pontuacao"]
-                
-            #urls = [link['link'] for link in links]
-            #for url in urls:
-            #    await scrape_squadron_info(web_handler, url)
-                #time.sleep(100)
 
                 logging.info("Data collection and database insertion completed successfully.")
             else:
