@@ -24,7 +24,7 @@ sortedcontainers==2.4.0
 toml==0.10.2
 trio==0.22.2
 trio-websocket==0.11.1
-undetected-chromedriver==3.2.1
+undetected-chromedriver==3.2.1cd 
 urllib3==1.26.17
 vulture==2.10
 webdriver-manager==4.0.0
