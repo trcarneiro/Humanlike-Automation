@@ -82,7 +82,14 @@ class BrowserHandler:
         try:
             chrome_options = self._initialize_webdriver_options()
             os_type = platform.system()
+            print("os_type: ", os_type)
             if os_type == "Windows":
+                # Define o caminho da pasta root do projeto
+                #root_path = os.path.abspath(os.path.dirname(__file__))
+                #print("root_path: ", root_path)
+                # Define os caminhos relativos a partir da pasta root
+                #chrome_binary_path = os.path.join(root_path, "chrome-win64", "chrome.exe")
+                #chrome_driver_path = os.path.join(root_path, "chrome-win64", "chromedriver.exe")
                 chrome_binary_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chrome.exe")
                 chrome_driver_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chromedriver.exe")
                 self.service = ChromeService(executable_path=chrome_driver_path, enable_verbose_logging = True)

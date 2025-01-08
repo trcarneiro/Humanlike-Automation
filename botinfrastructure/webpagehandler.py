@@ -6,8 +6,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from .utility import *  
-from .browserhandler import *  
+from .utility import *
+from .browserhandler import *
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 # Initialize logging
@@ -276,3 +277,56 @@ class WebPageHandler:
     def close(self):
         self.driver.quit()
         logger.info("Browser session closed.")
+        
+    def get_element_by_css(self, css):
+        try:
+            element = self.driver.find_element(By.CSS_SELECTOR, css)
+            return element
+        except WebDriverException as e:
+            logger.error(f"An error occurred while trying to find the element: {e}")
+            return None
+
+
+    def go_to_next_page(self, css):
+        try:
+            wait = WebDriverWait(self.driver, 10)
+            while True:
+                try:
+                    next_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.artdeco-pagination__button--next")))
+                    next_btn.location_once_scrolled_into_view 
+                    time.sleep(0.2)
+                    next_btn.click()
+                    return True 
+                except Exception as e:
+                    self.driver.execute_script("window.scrollBy(0, 600);") 
+                    time.sleep(1) 
+        except Exception as e:
+            self.logger.error(f"Failed to navigate to the next page: {e}")
+            return False
+        
+    def get_attribute_by_xpath(self, xpath, attribute, timeout=10):
+        """
+        Retrieve the attribute value of an element found by XPath.
+        
+        :param xpath: The XPath used to locate the element.
+        :param attribute: The attribute whose value needs to be retrieved.
+        :param timeout: Time to wait for the element to be located.
+        :return: The value of the specified attribute, or None if not found.
+        """
+        try:
+            element = self._wait_for_element(xpath, timeout=timeout)
+            if element:
+                return element.get_attribute(attribute)
+            else:
+                logger.warning(f"Element not found for xpath: {xpath}")
+                return None
+        except (NoSuchElementException, TimeoutException) as e:
+            logger.error(f"An error occurred while trying to get attribute '{attribute}' for xpath '{xpath}': {e}")
+            return None
+
+    def upload_file(self, xpath, file_path):
+        try:
+            file_input = self.driver.find_element(By.XPATH, xpath)
+            file_input.send_keys(file_path)
+        except Exception as e:
+            print(f"Failed to upload file: {e}")
