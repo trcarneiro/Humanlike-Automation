@@ -3,14 +3,13 @@ from selenium import webdriver
 from bs4 import BeautifulSoup, Tag
 import json
 from .utility import Utility
-from .ai_handler import AiAnalyzer
 from .webpagehandler import WebPageHandler # Importe ou defina esta classe
 
 
 class WebpageAnalyzer:
-    def __init__(self, driver, ai_api_key):
+    def __init__(self, driver, ai_api_key=None):
         self.driver = driver
-        self.ai_analyzer = AiAnalyzer()  
+        self.ai_api_key = ai_api_key  # Pode ser usado futuramente para integração IA
         self.webpagehandler = WebPageHandler(self.driver)# Inicializa o analisador de IA
 
     def load_page(self, url):
