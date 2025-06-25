@@ -1,0 +1,51 @@
+# MANIFEST.in for humanlike-automation package
+# Include additional files in the package distribution
+
+# Documentation
+include README.md
+include README_PUBLIC.md
+include STEALTH_SETUP.md
+include IMPLEMENTATION_SUMMARY.md
+include LICENSE
+
+# Configuration files
+include .env.example
+include xpaths_config.json
+
+# Requirements
+include botinfrastructure/requirements.txt
+include botinfrastructure/requirements_clean.txt
+
+# Examples
+recursive-include examples *.py
+include examples/README.md
+
+# Exclude development and build files
+exclude setup.py
+exclude pyproject.toml
+exclude MANIFEST.in
+exclude .gitignore
+exclude *.log
+exclude *.pyc
+exclude test_*.py
+
+# Exclude directories
+recursive-exclude ARCHIVE *
+recursive-exclude profilestest *
+recursive-exclude portable_browser *
+recursive-exclude __pycache__ *
+recursive-exclude .git *
+recursive-exclude .vscode *
+
+# Include package data
+recursive-include botinfrastructure *.txt
+recursive-include botinfrastructure *.json
+
+# Global excludes
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .git*

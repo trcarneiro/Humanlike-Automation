@@ -1,38 +1,42 @@
 #!/bin/bash
+# publish_package.sh - Script para publicar o pacote humanlike-automation no PyPI
 
-# Parar o script se algum comando falhar
-set -e
+echo "🚀 Publicação do pacote humanlike-automation no PyPI"
+echo "=================================================="
 
-# Obter a versão atual do pacote a partir do setup.py
-VERSION=$(python3 -c "import re; \
-                     setup_file='setup.py'; \
-                     version_line = [line for line in open(setup_file) if 'version=' in line][0]; \
-                     print(re.search(r\"(?<=version=\')\d+\.\d+\.\d+.*(?=\')\", version_line).group(0))")
+# Verificar se estamos no diretório correto
+if [ ! -f "setup.py" ]; then
+    echo "❌ setup.py não encontrado. Execute no diretório raiz do projeto."
+    exit 1
+fi
 
-echo "Versão atual: $VERSION"
+echo "📋 Instalando ferramentas de build..."
+python -m pip install --upgrade pip setuptools wheel build twine
 
-# Atualizar o histórico de mudanças
-echo "Atualize o arquivo CHANGELOG.md ou HISTORY.txt agora e pressione enter quando estiver pronto."
-read
+echo "🧹 Limpando builds anteriores..."
+rm -rf build/ dist/ *.egg-info/
 
-# Geração de distribuição
-echo "Gerando distribuição..."
-python3 setup.py sdist bdist_wheel
+echo "🔍 Validando configuração..."
+python setup.py check
 
-# Publicação no PyPI
-echo "Publicando no PyPI..."
-pip install twine
-#twine upload dist/*
+echo "🔨 Construindo pacote..."
+python -m build
 
-# Tag no Git
-echo "Criando tag no Git..."
-git tag -a "v$VERSION" -m "Versão $VERSION"
-git push origin "v$VERSION"
+echo "✅ Verificando integridade do pacote..."
+python -m twine check dist/*
 
-# Commit e push das mudanças
-echo "Fazendo push das alterações para o repositório..."
-git add .
-git commit -m "Prepare release $VERSION"
-git push origin main
+echo ""
+echo "📦 Arquivos gerados:"
+ls -la dist/
 
-echo "Publicação concluída com sucesso."
+echo ""
+echo "🧪 Para testar primeiro (recomendado):"
+echo "   twine upload --repository testpypi dist/*"
+echo "   pip install -i https://test.pypi.org/simple/ humanlike-automation"
+
+echo ""
+echo "🚀 Para publicar no PyPI principal:"
+echo "   twine upload dist/*"
+
+echo ""
+echo "✅ Build concluído! Use os comandos acima para publicar."
