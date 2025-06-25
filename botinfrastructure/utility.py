@@ -6,8 +6,6 @@ import requests
 import subprocess
 import pyperclip
 
-TELEGRAM_TOKEN = "5798790746:AAH68kkyPykFVhGUcMGswKxOLCXbKh3If2k"   
-CHAT_ID = "-726936965"
 
 class CustomLogger:
     @staticmethod
@@ -56,19 +54,7 @@ class Utility:
             subprocess.run(["python", script_path])
         finally:
             os.remove(lock_file)
-            
-    '''def send_error_to_telegram(self, exception):
-        message = f"Error: {str(exception)}"
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-                data={
-                    "chat_id": CHAT_ID,
-                    "text": message
-                }
-            )
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error sending message to Telegram: {e}")'''
+        
 
     def save_data(self, data, file_name, directory):
         if not os.path.exists(directory):

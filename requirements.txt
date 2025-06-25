@@ -1,33 +1,21 @@
-attrs==23.1.0
-#botinfrastructure @ git+https://github.com/trcarneiro/bot_infrastructure.git@a772dd4be95f69033f5b509c9f5a60a2fd19c7aa
-certifi==2023.7.22
-cffi==1.16.0
-charset-normalizer==2.1.1
-docopt==0.6.2
-fake-useragent==2.0.3
-h11==0.14.0
-idna==3.4
-mysql-connector-repackaged==0.3.1
-outcome==1.2.0
-packaging==23.2
-pipreqs==0.4.13
-psutil==5.9.5
-pycparser==2.21
-pyperclip==1.8.2
-PySocks==1.7.1
-python-dotenv==1.0.0
-requests==2.28.1
-selenium==4.13.0
-setuptools==68.2.2
-sniffio==1.3.0
-sortedcontainers==2.4.0
-toml==0.10.2
-trio==0.22.2
-trio-websocket==0.11.1
-undetected-chromedriver==3.2.1
-urllib3==1.26.17
-vulture==2.10
-webdriver-manager==4.0.0
+# Core automation requirements
+selenium>=4.13.0
+undetected-chromedriver>=3.5.0
+webdriver-manager>=4.0.0
+
+# Human-like behavior
+fake-useragent>=2.0.0
+pyperclip>=1.8.0
+
+# Configuration management
+python-dotenv>=1.0.0
+
+# HTTP requests and utilities
+requests>=2.28.0
+urllib3>=1.26.0
+
+# System utilities
+psutil>=5.9.0
 websockets==11.0.3
 wheel==0.41.2
 wsproto==1.2.0

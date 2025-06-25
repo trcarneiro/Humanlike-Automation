@@ -156,3 +156,16 @@ dist
 profiles
 profileswarthunder
 tests
+
+# Security-sensitive files
+db_config.json
+db_config.json_local
+apikeys.txt
+**/db_config.json
+
+# Credential files
+*.key
+*.pem
+*.env
+.devcontainer
+.vscode

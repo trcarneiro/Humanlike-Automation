@@ -1,11 +1,11 @@
 import json
 import datetime
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime,Text
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
-
+from .config_manager import config_manager
 
 
 Base = declarative_base()
@@ -13,16 +13,16 @@ Base = declarative_base()
 class HomeAction(Base):
     __tablename__ = 'home_action'
     id = Column(Integer, primary_key=True)
-    type_action = Column(String(255))  # Defina um tamanho adequado aqui
-    xpath = Column(String(255))  # Defina um tamanho adequado aqui
-    value = Column(String(255))  # Defina um tamanho adequado aqui
+    type_action = Column(String(255))
+    xpath = Column(String(255))
+    value = Column(String(255))
     procedure_id = Column(Integer, ForeignKey('home_procedure.id'))
 
 class ProcessTrigger(Base):
     __tablename__ = 'process_trigger'
     id = Column(Integer, primary_key=True)
     bot_id = Column(Integer, ForeignKey('home_bot.id'))
-    status = Column(String(255))  # Adicionado tamanho
+    status = Column(String(255))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -31,14 +31,14 @@ class ProcessLog(Base):
     id = Column(Integer, primary_key=True)
     trigger_id = Column(Integer, ForeignKey('process_trigger.id'))
     action_id = Column(Integer, ForeignKey('home_action.id'))
-    status = Column(String(255))  # Adicionado tamanho
-    message = Column(String(255))  # Adicionado tamanho
+    status = Column(String(255))
+    message = Column(String(255))
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
 class HomeBot(Base):
     __tablename__ = 'home_bot'
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)  # Adicionado tamanho
+    name = Column(String(255), nullable=False)
     description = Column(Text)
     
 class ScriptSchedule(Base):
@@ -52,18 +52,21 @@ class ScriptSchedule(Base):
 
 
 class Database_handler:
-    def __init__(self):
+    def __init__(self, config_path=None):
         # Configuração do banco de dados
-
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        config_path = os.path.join(dir_path, 'db_config.json')
-        if not os.path.isfile(config_path):
-            raise FileNotFoundError(f"O arquivo de configuração {config_path} não foi encontrado.")
-
-        with open(config_path, 'r') as f:
-            config = json.load(f)
+        if config_path is None:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            config_path = os.path.join(dir_path, 'db_config.json')
         
-        DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+        if not os.path.isfile(config_path):
+            # Se não existe o arquivo local, usa o config_manager
+            DATABASE_URI = config_manager.get_database_uri()
+        else:
+            # Mantém compatibilidade com arquivo de config existente
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            DATABASE_URI = f"mysql+mysqlconnector://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+        
         self.engine = create_engine(DATABASE_URI)
         self.Session = sessionmaker(bind=self.engine)
         # Criação das tabelas no banco de dados
@@ -80,8 +83,9 @@ class Database_handler:
         new_trigger = ProcessTrigger(bot_id=bot_id, status='Started')
         session.add(new_trigger)
         session.commit()
+        trigger_id = new_trigger.id
         session.close()
-        return new_trigger.id
+        return trigger_id
 
     def log_action(self, trigger_id, action_id, status, message):
         session = self.Session()
@@ -89,51 +93,80 @@ class Database_handler:
         session.add(new_log)
         session.commit()
         session.close()
-        
-    def get_all_bots(engine):
-        Session = sessionmaker(bind=engine)
-        session = Session()
+
+    def complete_process(self, trigger_id):
+        session = self.Session()
+        trigger = session.query(ProcessTrigger).get(trigger_id)
+        if trigger:
+            trigger.status = 'Completed'
+            trigger.updated_at = datetime.datetime.utcnow()
+            session.commit()
+        session.close()
+
+    def schedule_script(self, script_name, script_path, frequency_minutes):
+        session = self.Session()
+        next_run_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=frequency_minutes)
+        scheduled_script = ScriptSchedule(
+            script_name=script_name,
+            script_path=script_path,
+            frequency=frequency_minutes,
+            next_run=next_run_time
+        )
+        session.add(scheduled_script)
+        session.commit()
+        session.close()
+
+    def get_due_scripts(self):
+        session = self.Session()
+        current_time = datetime.datetime.utcnow()
+        due_scripts = session.query(ScriptSchedule).filter(ScriptSchedule.next_run <= current_time).all()
+        session.close()
+        return due_scripts
+
+    def update_script_run_time(self, script_id):
+        session = self.Session()
+        script = session.query(ScriptSchedule).get(script_id)
+        if script:
+            script.last_run = datetime.datetime.utcnow()
+            script.next_run = datetime.datetime.utcnow() + datetime.timedelta(minutes=script.frequency)
+            session.commit()
+        session.close()
+
+    def add_bot(self, name, description):
+        session = self.Session()
+        new_bot = HomeBot(name=name, description=description)
+        session.add(new_bot)
+        session.commit()
+        bot_id = new_bot.id
+        session.close()
+        return bot_id
+
+    def get_all_bots(self):
+        session = self.Session()
         bots = session.query(HomeBot).all()
         session.close()
         return bots
-    
-    def get_active_processes(self):
-        session = self.Session()
-        active_processes = session.query(ProcessTrigger).filter(ProcessTrigger.status == 'Started').all()
-        session.close()
-        return active_processes
 
-    # Novo método para atualizar o status do processo
-    def update_process_status(self, process_id, status):
-        session = self.Session()
-        process = session.query(ProcessTrigger).get(process_id)
-        if process:
-            process.status = status
-            session.commit()
-        session.close()
+    def scheduler_daemon(self):
+        """Daemon function to run scheduled scripts."""
+        scheduler = BackgroundScheduler()
+        scheduler.start()
+
+        def check_and_run_scripts():
+            due_scripts = self.get_due_scripts()
+            for script in due_scripts:
+                try:
+                    # Execute the script (you might want to customize this part)
+                    os.system(f"python {script.script_path}")
+                    self.update_script_run_time(script.id)
+                except Exception as e:
+                    print(f"Error running script {script.script_name}: {e}")
+
+        scheduler.add_job(check_and_run_scripts, 'interval', minutes=1)
         
-    def add_script_schedule(self, script_name, script_path, frequency):
-        session = self.Session()
-        next_run = datetime.datetime.now() + datetime.timedelta(minutes=frequency)
-        new_schedule = ScriptSchedule(script_name=script_name, script_path=script_path, frequency=frequency, next_run=next_run)
-        session.add(new_schedule)
-        session.commit()
-        session.close()
-
-    def run_scheduled_scripts(self):
-        now = datetime.datetime.now()
-        session = self.Session()
-        due_scripts = session.query(ScriptSchedule).filter(ScriptSchedule.next_run <= now).all()
-        
-        for script in due_scripts:
-            exec(open(script.script_path).read(), globals())
-            script.last_run = now
-            script.next_run = now + datetime.timedelta(minutes=script.frequency)
-        
-        session.commit()
-        session.close()
-
-    '''scheduler = BackgroundScheduler()
-    scheduler.add_job(run_scheduled_scripts, 'interval', minutes=1)
-    scheduler.start()'''
-
+        try:
+            # Keep the scheduler running
+            while True:
+                pass
+        except KeyboardInterrupt:
+            scheduler.shutdown()

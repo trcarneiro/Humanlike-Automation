@@ -13,6 +13,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import FakeUserAgent
 from .utility import *  
+from .config_manager import config_manager
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -128,7 +129,7 @@ class BrowserHandler:
             )
             self.driver.find_element(By.CSS_SELECTOR, "h3").click()
             #self._random_sleep()
-            if self.driver.find_elements(By.XPATH, '//*[@id="challenge-stage"]'):
+            if self.driver.find_elements(By.XPATH, config_manager.get_xpath('cloudflare', 'challenge_stage')):
                 logging.warning(f"Bot detected on site: {self.site}")
                 result["bot_detected"] = True
                 return False
