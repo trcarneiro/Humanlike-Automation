@@ -14,6 +14,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import UserAgent
 from .utility import *  
 from .config_manager import config_manager
+from .portable_browser import PortableBrowserManager
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -23,13 +24,35 @@ logger = logging.getLogger('BrowserHandler')
 logger.setLevel(logging.INFO)
 
 class BrowserHandler:
-    def __init__(self, site, profile, proxy, profile_folder):
+    def __init__(self, site, profile="default", proxy=None, profile_folder=None, 
+                 use_stealth=True, headless=False, portable_browser_dir=None):
+        """
+        Initialize BrowserHandler with support for stealth mode and portable Chrome
+        
+        Args:
+            site: Target site URL
+            profile: Browser profile name
+            proxy: Proxy configuration (optional)
+            profile_folder: Custom profile folder path
+            use_stealth: Enable stealth/anti-detection mode
+            headless: Run browser in headless mode
+            portable_browser_dir: Directory for portable browser setup
+        """
         self.profile = profile
         self.proxy = proxy
         self.site = site
         self.utility = Utility()
         self.driver = None
-        self.profile_folder = profile_folder
+        self.profile_folder = profile_folder or "profilestest"
+        self.use_stealth = use_stealth
+        self.headless = headless
+        
+        # Initialize portable browser manager for stealth mode
+        if self.use_stealth:
+            self.portable_manager = PortableBrowserManager(portable_browser_dir)
+            logger.info("Stealth mode enabled - using PortableBrowserManager")
+        else:
+            self.portable_manager = None
 
     def close(self):
         self.driver.quit()   
@@ -104,38 +127,54 @@ class BrowserHandler:
         })
 
     def initialize_driver(self):
-        """Initialize the Selenium WebDriver."""
+        """Initialize the Selenium WebDriver with optional stealth mode."""
         try:
-            chrome_options = self._initialize_webdriver_options()
-            os_type = platform.system()
-            print("os_type: ", os_type)
-            if os_type == "Windows":
-                # Define o caminho da pasta root do projeto
-                root_path = os.path.abspath(os.path.dirname(__file__))
-                print("root_path: ", root_path)
-                # Define os caminhos relativos a partir da pasta root
-                chrome_binary_path = os.path.join(root_path, "chrome-win64", "chrome.exe")
-                chrome_driver_path = os.path.join(root_path, "chrome-win64", "chromedriver.exe")
-                #root_folder = os.path.abspath(os.path.join(os.getcwd(), '..')) 
-                #print("root_folder: ", root_folder)
-                #chrome_binary_path = os.path.join(root_folder, "chrome.exe")
-                #chrome_driver_path = os.path.join(root_folder, "chromedriver.exe")
-                self.service = ChromeService(executable_path=chrome_driver_path, enable_verbose_logging = True)
-                chrome_options.binary_location = chrome_binary_path                   
-                self._avoid_webdriver_detection()
-            elif os_type == "Linux":
-                chrome_binary_path = "/usr/bin/google-chrome-stable"
-                chrome_driver_path = "./chromedriver"
-                chrome_options.add_argument('--headless')
-                self.service = ChromeService(ChromeDriverManager().install())
+            if self.use_stealth and self.portable_manager:
+                # Use stealth mode with portable browser manager
+                logger.info("Initializing driver in stealth mode")
+                self.driver = self.portable_manager.create_stealth_driver(
+                    profile_name=self.profile,
+                    headless=self.headless,
+                    use_undetected=True
+                )
             else:
-                raise Exception("Unsupported operating system.")
-            
-            self.driver = webdriver.Chrome(service=self.service, options=chrome_options)
+                # Use legacy initialization method
+                logger.info("Initializing driver in legacy mode")
+                self._initialize_legacy_driver()
+                
         except Exception as e:
             logger.error(f"Exception occurred while initializing driver: {e}")
             self.utility.print_exception()
             raise
+
+    def _initialize_legacy_driver(self):
+        """Legacy driver initialization method."""
+        chrome_options = self._initialize_webdriver_options()
+        os_type = platform.system()
+        print("os_type: ", os_type)
+        if os_type == "Windows":
+            # Define o caminho da pasta root do projeto
+            root_path = os.path.abspath(os.path.dirname(__file__))
+            print("root_path: ", root_path)
+            # Define os caminhos relativos a partir da pasta root
+            chrome_binary_path = os.path.join(root_path, "chrome-win64", "chrome.exe")
+            chrome_driver_path = os.path.join(root_path, "chrome-win64", "chromedriver.exe")
+            #root_folder = os.path.abspath(os.path.join(os.getcwd(), '..')) 
+            #print("root_folder: ", root_folder)
+            #chrome_binary_path = os.path.join(root_folder, "chrome.exe")
+            #chrome_driver_path = os.path.join(root_folder, "chromedriver.exe")
+            self.service = ChromeService(executable_path=chrome_driver_path, enable_verbose_logging = True)
+            chrome_options.binary_location = chrome_binary_path                   
+            self._avoid_webdriver_detection()
+        elif os_type == "Linux":
+            chrome_binary_path = "/usr/bin/google-chrome-stable"
+            chrome_driver_path = "./chromedriver"
+            chrome_options.add_argument('--headless')
+            self.service = ChromeService(ChromeDriverManager().install())
+        else:
+            raise Exception("Unsupported operating system.")
+        
+        self.driver = webdriver.Chrome(service=self.service, options=chrome_options)
 
     def validate_bot(self):
         """Validate if the bot is detected by the site."""
@@ -206,3 +245,70 @@ class BrowserHandler:
             logger.error(f"Exception occurred during execution: {e}")
             self.utility.print_exception()
             raise
+
+    def get_portable_browser_status(self):
+        """Get status of portable browser setup (only available in stealth mode)."""
+        if not self.portable_manager:
+            return {"error": "Stealth mode not enabled"}
+        return self.portable_manager.get_status()
+    
+    def setup_portable_browser(self):
+        """Download and setup portable browser components."""
+        if not self.portable_manager:
+            logger.warning("Stealth mode not enabled - cannot setup portable browser")
+            return False
+        
+        logger.info("Setting up portable browser...")
+        chrome_ok = self.portable_manager.download_chrome_portable()
+        driver_ok = self.portable_manager.download_chromedriver()
+        
+        return chrome_ok or driver_ok  # Return True if at least one is available
+
+    @classmethod
+    def create_stealth_browser(cls, site, profile="stealth_default", headless=False, 
+                             portable_browser_dir=None):
+        """
+        Convenience method to create a browser handler in stealth mode
+        
+        Args:
+            site: Target site URL
+            profile: Browser profile name
+            headless: Run browser in headless mode
+            portable_browser_dir: Directory for portable browser setup
+            
+        Returns:
+            BrowserHandler instance configured for stealth mode
+        """
+        return cls(
+            site=site,
+            profile=profile,
+            proxy=None,
+            profile_folder=None,
+            use_stealth=True,
+            headless=headless,
+            portable_browser_dir=portable_browser_dir
+        )
+    
+    @classmethod
+    def create_legacy_browser(cls, site, profile="default", proxy=None, profile_folder=None):
+        """
+        Convenience method to create a browser handler in legacy mode
+        
+        Args:
+            site: Target site URL
+            profile: Browser profile name
+            proxy: Proxy configuration
+            profile_folder: Custom profile folder path
+            
+        Returns:
+            BrowserHandler instance configured for legacy mode
+        """
+        return cls(
+            site=site,
+            profile=profile,
+            proxy=proxy,
+            profile_folder=profile_folder,
+            use_stealth=False,
+            headless=False,
+            portable_browser_dir=None
+        )

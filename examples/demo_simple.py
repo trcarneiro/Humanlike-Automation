@@ -2,12 +2,15 @@
 Demo simples da biblioteca humanlike-automation
 Acessa YouTube e demonstra o uso básico
 
-Uso: python demo_simple.py
+Uso: 
+  python demo_simple.py           # Modo normal
+  python demo_simple.py --stealth # Modo stealth
 """
 
 import sys
 import os
 import time
+import argparse
 
 # Adicionar o diretório pai ao path para importar a biblioteca
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,21 +18,39 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from botinfrastructure import BrowserHandler, WebPageHandler
 
 
-def demo_youtube():
+def demo_youtube(use_stealth=False):
     """Demo simples: acessa YouTube"""
+    mode_name = "STEALTH" if use_stealth else "NORMAL"
     print("\n" + "="*50)
-    print("🎥 DEMO HUMANLIKE-AUTOMATION")
+    print(f"🎥 DEMO HUMANLIKE-AUTOMATION - MODO {mode_name}")
     print("🎯 Acessando YouTube automaticamente")
     print("="*50)
     
-    # Configurar navegador (modo visível para demonstração)
-    print("\n🚀 1. Configurando navegador...")
-    browser = BrowserHandler(
-        site="https://www.youtube.com",
-        profile="demo",
-        proxy=None,
-        profile_folder="./profiles"
-    )
+    # Configurar navegador 
+    print(f"\n🚀 1. Configurando navegador (modo {mode_name.lower()})...")
+    
+    if use_stealth:
+        # Usar modo stealth
+        browser = BrowserHandler.create_stealth_browser(
+            site="https://www.youtube.com",
+            profile="demo_stealth",
+            headless=False
+        )
+        print("� Modo stealth ativado - anti-detecção habilitada")
+    else:
+        # Usar modo tradicional
+        browser = BrowserHandler(
+            site="https://www.youtube.com",
+            profile="demo",
+            proxy=None,
+            profile_folder="profilestest/",
+            use_stealth=False
+        )
+    
+    # Verificar status se modo stealth
+    if use_stealth:
+        status = browser.get_portable_browser_status()
+        print(f"📊 Status navegador portátil: {status.get('chrome_available', False)}")
     
     try:
         # Iniciar navegador
@@ -126,17 +147,26 @@ def demo_youtube():
 
 def main():
     """Função principal"""
-    success = demo_youtube()
+    parser = argparse.ArgumentParser(description='Demo da biblioteca humanlike-automation')
+    parser.add_argument('--stealth', action='store_true', 
+                       help='Usar modo stealth/anti-detecção')
     
+    args = parser.parse_args()
+    
+    success = demo_youtube(use_stealth=args.stealth)
+    
+    mode_text = "STEALTH" if args.stealth else "NORMAL"
     print("\n" + "="*50)
     if success:
-        print("✅ DEMO EXECUTADA COM SUCESSO!")
+        print(f"✅ DEMO EXECUTADA COM SUCESSO! (Modo {mode_text})")
         print("🎯 A biblioteca humanlike-automation está funcionando!")
     else:
-        print("❌ DEMO FALHOU!")
+        print(f"❌ DEMO FALHOU! (Modo {mode_text})")
         print("🔧 Verifique a configuração e tente novamente")
     
     print("\n📚 Próximos passos:")
+    print("   • Execute: python demo_simple.py --stealth")
+    print("   • Execute: python stealth_mode_demo.py")
     print("   • Execute: python youtube_random_player.py")
     print("   • Execute: python youtube_human_behavior.py")
     print("   • Veja mais exemplos na pasta examples/")

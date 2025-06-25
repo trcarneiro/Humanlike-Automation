@@ -4,3 +4,4 @@ from .webpagehandler import WebPageHandler
 from .webpageanalyzer import WebpageAnalyzer
 from .browsersessionmanager import BrowserSessionManager
 from .config_manager import ConfigManager, config_manager
+from .portable_browser import PortableBrowserManager
