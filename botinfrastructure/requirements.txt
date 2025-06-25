@@ -16,7 +16,3 @@ urllib3>=1.26.0
 
 # System utilities
 psutil>=5.9.0
-websockets==11.0.3
-wheel==0.41.2
-wsproto==1.2.0
-yarg==0.1.9

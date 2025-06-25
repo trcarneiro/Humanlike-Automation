@@ -11,7 +11,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from fake_useragent import FakeUserAgent
+from fake_useragent import UserAgent
 from .utility import *  
 from .config_manager import config_manager
 import asyncio
@@ -29,8 +29,6 @@ class BrowserHandler:
         self.site = site
         self.utility = Utility()
         self.driver = None
-        self.ua = FakeUserAgent()
-        self.user_agent = self.ua.random
         self.profile_folder = profile_folder
 
     def close(self):
@@ -56,13 +54,24 @@ class BrowserHandler:
         sleep_time = random.uniform(min_seconds, max_seconds)
         logger.info(f"Sleeping for {sleep_time:.2f} seconds.")
         await asyncio.sleep(sleep_time)
+        
+    async def mimic_user_interaction(self):
+        scroll_pause_time = random.uniform(1, 3)
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        await asyncio.sleep(scroll_pause_time)
+        self.driver.execute_script("window.scrollTo(0, 0);")
 
     def _initialize_webdriver_options(self):
+        
+        
+        ua = UserAgent(platforms='desktop') 
+        user_agent = ua.random
         """Initialize Chrome options for WebDriver."""
         chrome_options = Options()
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--enable-file-cookies")
-        chrome_options.add_argument(f"user-agent={self.user_agent}")
+        print("user_agent: ", user_agent)
+        chrome_options.add_argument(f"user-agent={ua.random}")
         chrome_options.add_argument(f"--user-data-dir={self.profile_folder+self.profile}")
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument('--no-sandbox')
@@ -70,6 +79,7 @@ class BrowserHandler:
         chrome_options.add_argument("--verbose")
         chrome_options.add_argument("--log-path=chromedriver.log")
         chrome_options.add_argument("--remote-debugging-port=9222") 
+
         return chrome_options
 
     async def async_initialize_driver(self):
@@ -77,6 +87,21 @@ class BrowserHandler:
         executor = ThreadPoolExecutor()
         await loop.run_in_executor(executor, self.initialize_driver)       
 
+    def _avoid_webdriver_detection(self):
+        """Modify WebDriver to avoid detection by websites."""
+        self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': '''
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en']
+                });
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3]
+                });
+            '''
+        })
 
     def initialize_driver(self):
         """Initialize the Selenium WebDriver."""
@@ -86,15 +111,18 @@ class BrowserHandler:
             print("os_type: ", os_type)
             if os_type == "Windows":
                 # Define o caminho da pasta root do projeto
-                #root_path = os.path.abspath(os.path.dirname(__file__))
-                #print("root_path: ", root_path)
+                root_path = os.path.abspath(os.path.dirname(__file__))
+                print("root_path: ", root_path)
                 # Define os caminhos relativos a partir da pasta root
-                #chrome_binary_path = os.path.join(root_path, "chrome-win64", "chrome.exe")
-                #chrome_driver_path = os.path.join(root_path, "chrome-win64", "chromedriver.exe")
-                chrome_binary_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chrome.exe")
-                chrome_driver_path = os.path.join(os.getcwd(), "c:\\chrome-win64\\chromedriver.exe")
+                chrome_binary_path = os.path.join(root_path, "chrome-win64", "chrome.exe")
+                chrome_driver_path = os.path.join(root_path, "chrome-win64", "chromedriver.exe")
+                #root_folder = os.path.abspath(os.path.join(os.getcwd(), '..')) 
+                #print("root_folder: ", root_folder)
+                #chrome_binary_path = os.path.join(root_folder, "chrome.exe")
+                #chrome_driver_path = os.path.join(root_folder, "chromedriver.exe")
                 self.service = ChromeService(executable_path=chrome_driver_path, enable_verbose_logging = True)
-                chrome_options.binary_location = chrome_binary_path   
+                chrome_options.binary_location = chrome_binary_path                   
+                self._avoid_webdriver_detection()
             elif os_type == "Linux":
                 chrome_binary_path = "/usr/bin/google-chrome-stable"
                 chrome_driver_path = "./chromedriver"
